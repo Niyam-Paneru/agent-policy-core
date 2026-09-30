@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" role="img" aria-label="Task passes through a policy gate and an idempotency check before any tool runs. Denials branch off to a manual fallback. Every decision is appended to an append-only ledger.">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8a938f"/>
+    </marker>
+    <marker id="arDeny" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0 0 L10 5 L0 10 z" fill="#b64730"/>
+    </marker>
+  </defs>
+
+  <rect width="900" height="420" fill="#f4efe4"/>
+
+  <!-- main flow -->
+  <g fill="none" stroke="#8a938f" stroke-width="1.6" marker-end="url(#ar)">
+    <path d="M118 96 H176"/>
+    <path d="M330 96 H388"/>
+    <path d="M556 96 H614"/>
+  </g>
+
+  <!-- task -->
+  <rect x="18" y="72" width="100" height="48" rx="4" fill="#11161b"/>
+  <text x="68" y="93" fill="#f4efe4" font-size="11" text-anchor="middle">task</text>
+  <text x="68" y="108" fill="#d99b2b" font-size="9" text-anchor="middle">untrusted</text>
+
+  <!-- policy gate -->
+  <rect x="176" y="58" width="154" height="76" rx="4" fill="#11161b"/>
+  <text x="253" y="82" fill="#f4efe4" font-size="12" text-anchor="middle">policy gate</text>
+  <text x="253" y="99" fill="#9da6a7" font-size="9" text-anchor="middle">platform · action</text>
+  <text x="253" y="113" fill="#9da6a7" font-size="9" text-anchor="middle">exact origin · mode</text>
+  <text x="253" y="127" fill="#d99b2b" font-size="9" text-anchor="middle">evidence age</text>
+
+  <!-- idempotency -->
+  <rect x="388" y="58" width="168" height="76" rx="4" fill="#11161b"/>
+  <text x="472" y="82" fill="#f4efe4" font-size="12" text-anchor="middle">idempotency</text>
+  <text x="472" y="99" fill="#9da6a7" font-size="9" text-anchor="middle">duplicate effect</text>
+  <text x="472" y="113" fill="#9da6a7" font-size="9" text-anchor="middle">ambiguous outcome</text>
+  <text x="472" y="127" fill="#b64730" font-size="9" text-anchor="middle">cross-target repost</text>
+
+  <!-- tool -->
+  <rect x="614" y="72" width="96" height="48" rx="4" fill="#2e7077"/>
+  <text x="662" y="100" fill="#f4efe4" font-size="11" text-anchor="middle">tool</text>
+
+  <!-- deny branch -->
+  <g fill="none" stroke="#b64730" stroke-width="1.6" stroke-dasharray="5 4" marker-end="url(#arDeny)">
+    <path d="M253 134 V196"/>
+    <path d="M472 134 V196"/>
+  </g>
+  <rect x="176" y="196" width="380" height="52" rx="4" fill="#fbf3ee" stroke="#b64730" stroke-width="1.4"/>
+  <text x="366" y="217" fill="#b64730" font-size="11" text-anchor="middle">denied → downgrade to attended_prepare, or manual_only</text>
+  <text x="366" y="234" fill="#8a6258" font-size="9" text-anchor="middle">the gate never returns more permission than the registry holds</text>
+
+  <!-- ledger -->
+  <rect x="614" y="196" width="268" height="96" rx="4" fill="#11161b"/>
+  <text x="748" y="219" fill="#f4efe4" font-size="12" text-anchor="middle">append-only ledger</text>
+  <text x="748" y="238" fill="#9da6a7" font-size="9" text-anchor="middle">effect_intent → confirmed | ambiguous</text>
+  <text x="748" y="253" fill="#9da6a7" font-size="9" text-anchor="middle">redacted on write</text>
+  <text x="748" y="268" fill="#d99b2b" font-size="9" text-anchor="middle">ambiguous is a block, not a retry</text>
+  <g fill="none" stroke="#8a938f" stroke-width="1.4" marker-end="url(#ar)">
+    <path d="M662 120 V196"/>
+  </g>
+
+  <!-- footer -->
+  <text x="18" y="336" fill="#20211d" font-size="12">Default deny. Exact-origin targeting. Permissions expire after 90 days.</text>
+  <text x="18" y="356" fill="#6d6a61" font-size="10">A task may request a mode. It cannot add one the registry never granted.</text>
+  <text x="18" y="392" fill="#6d6a61" font-size="9">agent-policy-core · sanitised extract · illustrative origins</text>
+</svg>

@@ -1,0 +1,23 @@
+{
+  "name": "agent-policy-core",
+  "version": "1.0.0",
+  "license": "MIT",
+  "type": "module",
+  "description": "Deny-by-default policy gate for tool-calling agents: exact-origin targeting, expiring permissions, and idempotent effects that fail closed.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.js\"",
+    "demo": "node examples/walkthrough.js"
+  },
+  "keywords": [
+    "ai-agents",
+    "policy-engine",
+    "idempotency",
+    "fail-closed",
+    "least-privilege",
+    "audit-log"
+  ],
+  "dependencies": {}
+}
