@@ -1,6 +1,6 @@
 # agent-policy-core
 
-**A deny-by-default policy gate for tool-calling agents.**
+**A deny-by-default policy gate for tool-calling agents.**\n\n**Because “the agent felt like it” is not an authorization model.**
 
 Give an agent the ability to act on the web and the hard question is not "what
 should it do?" It is **"what is it allowed to do, and how do you prove it never
@@ -10,7 +10,7 @@ records the decision.
 
 The idea in one line: **the refusal is the feature, and permissions expire.**
 
-![Architecture: task passes through a policy gate and an idempotency check before any tool runs. Denials branch to a manual fallback. Every decision is appended to an append-only ledger.](docs/architecture.svg)
+```text\ntask -> policy gate -> idempotency -> tool -> ledger\n          |              |\n          +-> DENY       +-> AMBIGUOUS? STOP\n```
 
 ```bash
 git clone <this repo> && cd agent-policy-core
