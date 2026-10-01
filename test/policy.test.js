@@ -149,6 +149,10 @@ test("missing evidence is treated as stale", () => {
   assert.equal(evidenceIsStale({ reviewed_at: "not-a-date" }, NOW), true);
 });
 
+test("future-dated review evidence fails closed", () => {
+  assert.equal(evidenceIsStale({ reviewed_at: "2026-10-01" }, NOW), true);
+});
+
 // --- provenance ------------------------------------------------------------
 
 test("a comment without human provenance is refused", () => {
