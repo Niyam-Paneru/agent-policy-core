@@ -1,23 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-labelledby="t d">
-<title id="t">Agent policy decision workflow</title>
-<desc id="d">Task request passes permission, provenance, freshness, and effect-state checks before a tool may run.</desc>
-<rect width="1200" height="330" fill="#0b1020"/>
-<text x="56" y="52" fill="#f8fafc" font-family="Arial,sans-serif" font-size="28" font-weight="700">“The agent wanted to” is not a permission.</text>
-<path d="M90 175 H1110" stroke="#273449" stroke-width="5" stroke-linecap="round"/>
-<g font-family="Arial,sans-serif" text-anchor="middle">
-  <g transform="translate(110)"><circle cy="175" r="28" fill="#60a5fa"/><text y="182" font-size="18" font-weight="700">1</text><text y="225" fill="#dbeafe" font-size="14">capability</text></g>
-  <g transform="translate(310)"><circle cy="175" r="28" fill="#38bdf8"/><text y="182" font-size="18" font-weight="700">2</text><text y="225" fill="#dbeafe" font-size="14">origin</text></g>
-  <g transform="translate(510)"><circle cy="175" r="28" fill="#22d3ee"/><text y="182" font-size="18" font-weight="700">3</text><text y="225" fill="#dbeafe" font-size="14">fresh evidence</text></g>
-  <g transform="translate(710)"><circle cy="175" r="28" fill="#a78bfa"/><text y="182" font-size="18" font-weight="700">4</text><text y="225" fill="#ede9fe" font-size="14">provenance</text></g>
-  <g transform="translate(910)"><circle cy="175" r="28" fill="#f59e0b"/><text y="182" font-size="18" font-weight="700">5</text><text y="225" fill="#fef3c7" font-size="14">effect state</text></g>
-  <g transform="translate(1090)"><circle cy="175" r="28" fill="#4ade80"/><text y="182" font-size="18" font-weight="700">✓</text><text y="225" fill="#dcfce7" font-size="14">tool may run</text></g>
-</g>
-<g fill="#fb7185" font-family="Arial,sans-serif" font-size="13">
-  <text x="110" y="125" text-anchor="middle">unknown → deny</text>
-  <text x="310" y="125" text-anchor="middle">unreviewed → deny</text>
-  <text x="510" y="125" text-anchor="middle">stale → narrow</text>
-  <text x="710" y="125" text-anchor="middle">blocked → deny</text>
-  <text x="910" y="125" text-anchor="middle">ambiguous → stop</text>
-</g>
-<text x="1140" y="292" fill="#64748b" font-family="Arial,sans-serif" font-size="13" text-anchor="end">Refusal is cheaper than cleanup.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="t d">
+<title id="t">Agent policy overlap</title><desc id="d">Permission, fresh evidence, and known effect state overlap to allow an action.</desc>
+<rect width="1200" height="520" fill="#f5f5f1"/>
+<text x="58" y="64" fill="#71716a" font-family="Arial,sans-serif" font-size="14" letter-spacing="3">AGENT POLICY</text>
+<text x="58" y="108" fill="#171714" font-family="Georgia,serif" font-size="35">An action exists only in the overlap.</text>
+<circle cx="455" cy="292" r="155" fill="#e4edb0" fill-opacity=".82" stroke="#596e35" stroke-width="2"/>
+<circle cx="625" cy="292" r="155" fill="#dce9de" fill-opacity=".82" stroke="#4f7555" stroke-width="2"/>
+<circle cx="540" cy="385" r="155" fill="#f1d9dc" fill-opacity=".82" stroke="#a4243b" stroke-width="2"/>
+<text x="390" y="245" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">permission</text><text x="390" y="272" text-anchor="middle" fill="#4e4e48" font-family="Arial,sans-serif" font-size="15">scope · origin · mode</text>
+<text x="690" y="245" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">fresh evidence</text><text x="690" y="272" text-anchor="middle" fill="#4e4e48" font-family="Arial,sans-serif" font-size="15">review still valid</text>
+<text x="540" y="452" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">known effect state</text>
+<circle cx="540" cy="326" r="48" fill="#171714"/><text x="540" y="332" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="17" font-weight="700">ALLOW</text>
+<rect x="880" y="220" width="250" height="118" rx="18" fill="#fff" stroke="#d8d8d1" stroke-width="2"/><text x="905" y="255" fill="#a4243b" font-family="Arial,sans-serif" font-size="13" letter-spacing="2">OUTSIDE THE OVERLAP</text><text x="905" y="288" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">deny or stop</text><text x="905" y="316" fill="#71716a" font-family="Arial,sans-serif" font-size="14">ambiguity never widens permission</text>
 </svg>
