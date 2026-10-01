@@ -14,7 +14,7 @@ test("credentials are redacted on write, never on read", () => {
     phase: "effect_intent",
     payload: {
       note: "hello",
-      authorization: "Bearer sk-live-abc123",
+      authorization: "Bearer fake-redact-me",
       nested: { api_key: "xyz", password: "hunter2", keep: "visible" },
     },
   });
