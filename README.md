@@ -64,6 +64,6 @@ An ambiguous result means **stop and verify**, not retry. The blocking result in
 
 ## Scope and claim boundary
 
-This is a policy proof, not a sandbox or browser driver. It has no network client, browser integration, credential store, or provider SDK. The caller must invoke the gate before external tools and persist/use the journal appropriately.
+This is a policy library, not a sandbox or browser driver. It has no network client, browser integration, credential store, or provider SDK. The caller must invoke the gate before external tools and persist/use the journal appropriately.
 
 See [SECURITY.md](SECURITY.md) for assumptions, [PROVENANCE.md](PROVENANCE.md) for what was preserved from the private Browser Bridge work, and [docs/invariants.md](docs/invariants.md) / [docs/failure-modes.md](docs/failure-modes.md) for the failure contract.
