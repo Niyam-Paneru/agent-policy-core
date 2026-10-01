@@ -162,13 +162,14 @@ Stated plainly, because a gate that oversells itself is worse than no gate:
 
 ## Provenance
 
-This is a **sanitised extract** from a private production system that runs a
-browser-driving agent with a policy layer in front of it. Platform names, origin
-allowlists and infrastructure details are illustrative and non-functional. The
-policy logic, the idempotency rules and the redaction behaviour are the real
-implementation.
+This is a **sanitised standalone extraction** of policy, idempotency, and
+ledger behaviour from the private Browser Bridge project, a local browser-control
+system. Platform names, origin allowlists, and integration details are
+illustrative and non-functional. The public module preserves the reviewed policy
+and expiry rules, ambiguous-effect blocking, and write-time redaction while
+removing project-specific transport and browser code.
 
-The full system is not public.
+The full Browser Bridge system is not public.
 
 ## If you take one thing
 

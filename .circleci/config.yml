@@ -1,0 +1,21 @@
+version: 2.1
+
+orbs:
+  node: circleci/node@5
+
+jobs:
+  test:
+    executor: node/default
+    steps:
+      - checkout
+      - run:
+          name: Run tests
+          command: npm test
+      - run:
+          name: Run demo
+          command: npm run demo
+
+workflows:
+  build-and-test:
+    jobs:
+      - test
