@@ -1,39 +1,141 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="t d">
-<title id="t">Agent policy architecture</title><desc id="d">A tool request is evaluated by grant, evidence freshness, provenance, and effect state before tool execution.</desc>
-<rect width="1200" height="520" fill="#f5f5f1"/>
-<text x="56" y="62" fill="#71716a" font-family="Arial,sans-serif" font-size="13" letter-spacing="3">AGENT POLICY CORE</text>
-<text x="56" y="105" fill="#171714" font-family="Georgia,serif" font-size="34">Tool access is a decision, not a personality trait.</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">Authorization and effect-state gate tree</title>
+  <desc id="desc">A tool request first passes authorization checks for capability, target, mode, evidence freshness, and provenance. Only after authorization does the separate effect-state gate decide whether the external effect may proceed or must stop to avoid a duplicate or ambiguous replay.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1f2937"/>
+    </marker>
+    <style>
+      .bg{fill:#ffffff}.ink{fill:#111827}.muted{fill:#4b5563}.line{stroke:#1f2937;stroke-width:2;fill:none;marker-end:url(#arrow)}
+      .dash{stroke:#9ca3af;stroke-width:1.5;stroke-dasharray:6 7}.box{fill:#ffffff;stroke:#1f2937;stroke-width:1.6}
+      .gate{fill:#f8fafc;stroke:#1f2937;stroke-width:1.6}.deny{fill:#fff7f7;stroke:#991b1b;stroke-width:1.5}
+      .allow{fill:#f0fdf4;stroke:#166534;stroke-width:1.6}.stop{fill:#fff7ed;stroke:#9a3412;stroke-width:1.6}
+      .label{font:700 12px Arial,sans-serif;letter-spacing:1.4px}.body{font:15px Arial,sans-serif}.small{font:12px Arial,sans-serif}.mono{font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+    </style>
+  </defs>
+  <rect class="bg" width="1200" height="760"/>
 
-<rect x="58" y="182" width="170" height="92" rx="14" fill="#fff" stroke="#171714" stroke-width="2"/>
-<text x="80" y="212" fill="#71716a" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">REQUEST</text>
-<text x="80" y="243" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">tool + origin</text>
+  <text x="48" y="44" class="ink" font-family="Arial,sans-serif" font-size="25" font-weight="700">Agent Policy Core</text>
+  <text x="48" y="69" class="muted" font-family="Arial,sans-serif" font-size="14">Authorization decides whether a capability is permitted. Effect state decides whether a permitted external write is safe to perform again.</text>
 
-<rect x="305" y="142" width="320" height="172" rx="16" fill="#fff" stroke="#171714" stroke-width="2"/>
-<text x="330" y="176" fill="#71716a" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">POLICY GATE</text>
-<text x="330" y="209" fill="#171714" font-family="Georgia,serif" font-size="25">Four things must agree.</text>
-<text x="330" y="244" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">grant scope</text>
-<text x="455" y="244" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">fresh evidence</text>
-<text x="330" y="272" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">human provenance</text>
-<text x="455" y="272" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">known effect state</text>
+  <line x1="600" y1="98" x2="600" y2="724" class="dash"/>
+  <text x="48" y="108" class="label ink">A · AUTHORIZATION</text>
+  <text x="628" y="108" class="label ink">B · EFFECT STATE / IDEMPOTENCY</text>
 
-<rect x="710" y="145" width="195" height="82" rx="14" fill="#e4edb0" stroke="#596e35" stroke-width="2"/>
-<text x="734" y="176" fill="#596e35" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">ALLOW</text>
-<text x="734" y="204" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">tool may run</text>
+  <!-- Authorization tree -->
+  <rect x="48" y="132" width="220" height="52" rx="4" class="box"/>
+  <text x="158" y="154" text-anchor="middle" class="body ink" font-weight="700">tool request</text>
+  <text x="158" y="174" text-anchor="middle" class="small muted">platform · action · target · mode</text>
 
-<rect x="710" y="250" width="195" height="82" rx="14" fill="#f1d9dc" stroke="#a4243b" stroke-width="2"/>
-<text x="734" y="281" fill="#a4243b" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">DENY / STOP</text>
-<text x="734" y="309" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">reason preserved</text>
+  <polygon points="158,208 258,252 158,296 58,252" class="gate"/>
+  <text x="158" y="247" text-anchor="middle" class="body ink">known capability</text>
+  <text x="158" y="267" text-anchor="middle" class="small muted">platform + action?</text>
+  <path d="M158 184 V208" class="line"/>
 
-<rect x="976" y="182" width="170" height="92" rx="14" fill="#262722"/>
-<text x="998" y="212" fill="#d8d8d1" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">AFTER</text>
-<text x="998" y="243" fill="#fff" font-family="Arial,sans-serif" font-size="20" font-weight="700">append evidence</text>
+  <rect x="344" y="225" width="190" height="54" rx="4" class="deny"/>
+  <text x="439" y="248" text-anchor="middle" class="mono" fill="#991b1b">DENY · reason preserved</text>
+  <text x="439" y="268" text-anchor="middle" class="small muted">unsupported_* </text>
+  <path d="M258 252 H344" class="line"/>
+  <text x="289" y="244" class="small muted">NO</text>
 
-<g stroke="#171714" stroke-width="2" fill="none">
-<path d="M228 228 H305"/><path d="M625 195 H710"/><path d="M625 279 H710"/><path d="M905 186 H976"/>
-</g>
-<g fill="#171714"><path d="M297 222 l10 6 -10 6z"/><path d="M702 189 l10 6 -10 6z"/><path d="M702 273 l10 6 -10 6z"/><path d="M968 180 l10 6 -10 6z"/></g>
+  <polygon points="158,324 258,368 158,412 58,368" class="gate"/>
+  <text x="158" y="363" text-anchor="middle" class="body ink">exact target</text>
+  <text x="158" y="383" text-anchor="middle" class="small muted">origin / path / URL?</text>
+  <path d="M158 296 V324" class="line"/>
+  <text x="166" y="315" class="small muted">YES</text>
+  <path d="M258 368 H344" class="line"/>
+  <text x="289" y="360" class="small muted">NO</text>
+  <rect x="344" y="341" width="190" height="54" rx="4" class="deny"/>
+  <text x="439" y="364" text-anchor="middle" class="mono" fill="#991b1b">DENY</text>
+  <text x="439" y="384" text-anchor="middle" class="small muted">redirect_outside_allowlist</text>
 
-<rect x="305" y="365" width="600" height="70" rx="12" fill="#fff" stroke="#d8d8d1"/>
-<text x="330" y="394" fill="#a4243b" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">AMBIGUOUS EFFECT</text>
-<text x="330" y="420" fill="#171714" font-family="Georgia,serif" font-size="19">Stop and verify. Never widen permission by retrying blindly.</text>
+  <polygon points="158,440 258,484 158,528 58,484" class="gate"/>
+  <text x="158" y="479" text-anchor="middle" class="body ink">mode granted?</text>
+  <text x="158" y="499" text-anchor="middle" class="small muted">task cannot escalate</text>
+  <path d="M158 412 V440" class="line"/>
+  <path d="M258 484 H344" class="line"/>
+  <text x="289" y="476" class="small muted">NO</text>
+  <rect x="344" y="449" width="190" height="70" rx="4" class="deny"/>
+  <text x="439" y="472" text-anchor="middle" class="mono" fill="#991b1b">DENY · mode_not_allowed</text>
+  <text x="439" y="493" text-anchor="middle" class="small muted">effectiveMode may narrow to</text>
+  <text x="439" y="510" text-anchor="middle" class="mono muted">attended_prepare / manual_only</text>
+
+  <polygon points="158,556 258,600 158,644 58,600" class="gate"/>
+  <text x="158" y="595" text-anchor="middle" class="body ink">fresh evidence +</text>
+  <text x="158" y="615" text-anchor="middle" class="small muted">required provenance?</text>
+  <path d="M158 528 V556" class="line"/>
+  <path d="M258 600 H344" class="line"/>
+  <text x="289" y="592" class="small muted">NO</text>
+  <rect x="344" y="558" width="190" height="84" rx="4" class="deny"/>
+  <text x="439" y="582" text-anchor="middle" class="mono" fill="#991b1b">DENY / NARROW</text>
+  <text x="439" y="603" text-anchor="middle" class="small muted">policy_evidence_stale or</text>
+  <text x="439" y="622" text-anchor="middle" class="small muted">provenance_blocked</text>
+
+  <rect x="72" y="678" width="172" height="52" rx="4" class="allow"/>
+  <text x="158" y="701" text-anchor="middle" class="mono" fill="#166534">AUTHORIZED</text>
+  <text x="158" y="721" text-anchor="middle" class="small muted">mode + caps are bounded</text>
+  <path d="M158 644 V678" class="line"/>
+  <text x="166" y="669" class="small muted">YES</text>
+
+  <!-- Effect-state tree -->
+  <rect x="628" y="132" width="236" height="52" rx="4" class="box"/>
+  <text x="746" y="154" text-anchor="middle" class="body ink" font-weight="700">authorized effect</text>
+  <text x="746" y="174" text-anchor="middle" class="small muted">canonical key + journal state</text>
+
+  <polygon points="746,208 858,252 746,296 634,252" class="gate"/>
+  <text x="746" y="247" text-anchor="middle" class="body ink">prior effect state?</text>
+  <text x="746" y="267" text-anchor="middle" class="small muted">latest record for this key</text>
+  <path d="M746 184 V208" class="line"/>
+
+  <rect x="938" y="132" width="214" height="54" rx="4" class="stop"/>
+  <text x="1045" y="155" text-anchor="middle" class="mono" fill="#9a3412">STOP · duplicate_intent</text>
+  <text x="1045" y="175" text-anchor="middle" class="small muted">effect_intent already exists</text>
+  <path d="M858 238 H900 V159 H938" class="line"/>
+  <text x="871" y="229" class="small muted">INTENT</text>
+
+  <rect x="938" y="225" width="214" height="54" rx="4" class="stop"/>
+  <text x="1045" y="248" text-anchor="middle" class="mono" fill="#9a3412">STOP · duplicate_effect</text>
+  <text x="1045" y="268" text-anchor="middle" class="small muted">effect_confirmed already exists</text>
+  <path d="M858 252 H938" class="line"/>
+  <text x="872" y="244" class="small muted">CONFIRMED</text>
+
+  <rect x="938" y="318" width="214" height="70" rx="4" class="stop"/>
+  <text x="1045" y="341" text-anchor="middle" class="mono" fill="#9a3412">STOP · ambiguous_side_effect</text>
+  <text x="1045" y="362" text-anchor="middle" class="small muted">outcome unknown ≠ safe retry</text>
+  <text x="1045" y="380" text-anchor="middle" class="small muted">verify externally before new action</text>
+  <path d="M858 266 H900 V353 H938" class="line"/>
+  <text x="871" y="288" class="small muted">AMBIGUOUS</text>
+
+  <polygon points="746,342 858,386 746,430 634,386" class="gate"/>
+  <text x="746" y="381" text-anchor="middle" class="body ink">cross-target duplicate?</text>
+  <text x="746" y="401" text-anchor="middle" class="small muted">same content in dedupe window</text>
+  <path d="M746 296 V342" class="line"/>
+  <text x="754" y="327" class="small muted">NONE</text>
+
+  <rect x="938" y="420" width="214" height="54" rx="4" class="stop"/>
+  <text x="1045" y="443" text-anchor="middle" class="mono" fill="#9a3412">STOP</text>
+  <text x="1045" y="463" text-anchor="middle" class="small muted">duplicate_content_cross_target</text>
+  <path d="M858 386 H900 V447 H938" class="line"/>
+  <text x="871" y="378" class="small muted">YES</text>
+
+  <rect x="658" y="486" width="176" height="58" rx="4" class="allow"/>
+  <text x="746" y="510" text-anchor="middle" class="mono" fill="#166534">MAY PROCEED</text>
+  <text x="746" y="531" text-anchor="middle" class="small muted">record effect_intent first</text>
+  <path d="M746 430 V486" class="line"/>
+  <text x="754" y="468" class="small muted">NO</text>
+
+  <rect x="658" y="592" width="176" height="58" rx="4" class="box"/>
+  <text x="746" y="616" text-anchor="middle" class="body ink" font-weight="700">external transport</text>
+  <text x="746" y="637" text-anchor="middle" class="small muted">outside this library</text>
+  <path d="M746 544 V592" class="line"/>
+
+  <rect x="902" y="574" width="250" height="94" rx="4" class="box"/>
+  <text x="1027" y="598" text-anchor="middle" class="label ink">RECORD RESULT</text>
+  <text x="1027" y="620" text-anchor="middle" class="mono muted">effect_confirmed</text>
+  <text x="1027" y="640" text-anchor="middle" class="small muted">or, if outcome cannot be proved,</text>
+  <text x="1027" y="660" text-anchor="middle" class="mono" fill="#9a3412">effect_ambiguous → STOP</text>
+  <path d="M834 621 H902" class="line"/>
+
+  <rect x="628" y="694" width="524" height="36" rx="3" fill="#f8fafc" stroke="#d1d5db"/>
+  <text x="890" y="717" text-anchor="middle" class="small muted">Policy denial returns a reason/effectiveMode. Dedupe blocks return the prior record where implemented. Journal entries are append-only and redacted before persistence.</text>
 </svg>
