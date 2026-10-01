@@ -62,3 +62,12 @@ The package has no network, no browser, no credential store, and no provider SDK
 Want to poke holes in it? Read the [invariants](docs/invariants.md), [failure modes](docs/failure-modes.md), [decision table](docs/decision-table.md), and [walkthrough](docs/walkthrough.md).
 
 > The refusal is not an error message. Sometimes it is the feature.
+
+## Inspect deeper
+
+- [Design overview](docs/overview.md)
+- [Why the design looks this way](docs/decisions.md)
+- [How it fails on purpose](docs/failure-modes.md)
+- [Security / privacy boundary](SECURITY.md)
+
+The README is the front door. The interesting arguments are in those files.
