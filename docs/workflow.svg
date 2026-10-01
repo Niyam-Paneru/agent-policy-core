@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330" role="img" aria-labelledby="t d">
+<title id="t">Agent policy decision workflow</title>
+<desc id="d">Task request passes permission, provenance, freshness, and effect-state checks before a tool may run.</desc>
+<rect width="1200" height="330" fill="#0b1020"/>
+<text x="56" y="52" fill="#f8fafc" font-family="Arial,sans-serif" font-size="28" font-weight="700">“The agent wanted to” is not a permission.</text>
+<path d="M90 175 H1110" stroke="#273449" stroke-width="5" stroke-linecap="round"/>
+<g font-family="Arial,sans-serif" text-anchor="middle">
+  <g transform="translate(110)"><circle cy="175" r="28" fill="#60a5fa"/><text y="182" font-size="18" font-weight="700">1</text><text y="225" fill="#dbeafe" font-size="14">capability</text></g>
+  <g transform="translate(310)"><circle cy="175" r="28" fill="#38bdf8"/><text y="182" font-size="18" font-weight="700">2</text><text y="225" fill="#dbeafe" font-size="14">origin</text></g>
+  <g transform="translate(510)"><circle cy="175" r="28" fill="#22d3ee"/><text y="182" font-size="18" font-weight="700">3</text><text y="225" fill="#dbeafe" font-size="14">fresh evidence</text></g>
+  <g transform="translate(710)"><circle cy="175" r="28" fill="#a78bfa"/><text y="182" font-size="18" font-weight="700">4</text><text y="225" fill="#ede9fe" font-size="14">provenance</text></g>
+  <g transform="translate(910)"><circle cy="175" r="28" fill="#f59e0b"/><text y="182" font-size="18" font-weight="700">5</text><text y="225" fill="#fef3c7" font-size="14">effect state</text></g>
+  <g transform="translate(1090)"><circle cy="175" r="28" fill="#4ade80"/><text y="182" font-size="18" font-weight="700">✓</text><text y="225" fill="#dcfce7" font-size="14">tool may run</text></g>
+</g>
+<g fill="#fb7185" font-family="Arial,sans-serif" font-size="13">
+  <text x="110" y="125" text-anchor="middle">unknown → deny</text>
+  <text x="310" y="125" text-anchor="middle">unreviewed → deny</text>
+  <text x="510" y="125" text-anchor="middle">stale → narrow</text>
+  <text x="710" y="125" text-anchor="middle">blocked → deny</text>
+  <text x="910" y="125" text-anchor="middle">ambiguous → stop</text>
+</g>
+<text x="1140" y="292" fill="#64748b" font-family="Arial,sans-serif" font-size="13" text-anchor="end">Refusal is cheaper than cleanup.</text>
+</svg>
