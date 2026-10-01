@@ -90,21 +90,21 @@
   <rect x="938" y="132" width="214" height="54" rx="4" class="stop"/>
   <text x="1045" y="155" text-anchor="middle" class="mono" fill="#9a3412">STOP · duplicate_intent</text>
   <text x="1045" y="175" text-anchor="middle" class="small muted">effect_intent already exists</text>
-  <path d="M858 238 H900 V159 H938" class="line"/>
-  <text x="871" y="229" class="small muted">INTENT</text>
+  <path d="M858 232 H900 V159 H938" class="line"/>
+  <text x="866" y="219" class="small muted">INTENT</text>
 
   <rect x="938" y="225" width="214" height="54" rx="4" class="stop"/>
   <text x="1045" y="248" text-anchor="middle" class="mono" fill="#9a3412">STOP · duplicate_effect</text>
   <text x="1045" y="268" text-anchor="middle" class="small muted">effect_confirmed already exists</text>
   <path d="M858 252 H938" class="line"/>
-  <text x="872" y="244" class="small muted">CONFIRMED</text>
+  <text x="866" y="270" class="small muted">CONFIRMED</text>
 
   <rect x="938" y="318" width="214" height="70" rx="4" class="stop"/>
   <text x="1045" y="341" text-anchor="middle" class="mono" fill="#9a3412">STOP · ambiguous_side_effect</text>
   <text x="1045" y="362" text-anchor="middle" class="small muted">outcome unknown ≠ safe retry</text>
   <text x="1045" y="380" text-anchor="middle" class="small muted">verify externally before new action</text>
-  <path d="M858 266 H900 V353 H938" class="line"/>
-  <text x="871" y="288" class="small muted">AMBIGUOUS</text>
+  <path d="M858 272 H900 V353 H938" class="line"/>
+  <text x="866" y="301" class="small muted">AMBIGUOUS</text>
 
   <polygon points="746,342 858,386 746,430 634,386" class="gate"/>
   <text x="746" y="381" text-anchor="middle" class="body ink">cross-target duplicate?</text>
@@ -133,9 +133,11 @@
   <text x="1027" y="598" text-anchor="middle" class="label ink">RECORD RESULT</text>
   <text x="1027" y="620" text-anchor="middle" class="mono muted">effect_confirmed</text>
   <text x="1027" y="640" text-anchor="middle" class="small muted">or, if outcome cannot be proved,</text>
-  <text x="1027" y="660" text-anchor="middle" class="mono" fill="#9a3412">effect_ambiguous → STOP</text>
+  <text x="1027" y="660" text-anchor="middle" class="mono" fill="#9a3412">effect_ambiguous -&gt; STOP</text>
   <path d="M834 621 H902" class="line"/>
 
-  <rect x="628" y="694" width="524" height="36" rx="3" fill="#f8fafc" stroke="#d1d5db"/>
-  <text x="890" y="717" text-anchor="middle" class="small muted">Policy denial returns a reason/effectiveMode. Dedupe blocks return the prior record where implemented. Journal entries are append-only and redacted before persistence.</text>
+  <rect x="628" y="686" width="524" height="58" rx="3" fill="#f8fafc" stroke="#d1d5db"/>
+  <text x="890" y="706" text-anchor="middle" class="small muted">Policy denial returns a reason/effectiveMode.</text>
+  <text x="890" y="723" text-anchor="middle" class="small muted">Dedupe blocks return the prior record where implemented.</text>
+  <text x="890" y="740" text-anchor="middle" class="small muted">Journal entries are append-only and redacted before persistence.</text>
 </svg>
