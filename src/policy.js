@@ -37,6 +37,7 @@ export function evidenceIsStale(
   if (!evidence?.reviewed_at) return true;
   const reviewed = Date.parse(`${evidence.reviewed_at}T00:00:00Z`);
   if (!Number.isFinite(reviewed)) return true;
+  if (reviewed > now.getTime()) return true;
   return now.getTime() - reviewed > maxAgeDays * DAY_MS;
 }
 
