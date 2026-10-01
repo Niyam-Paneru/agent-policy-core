@@ -27,6 +27,7 @@ jobs:
             test -s docs/invariants.md
             test -s docs/failure-modes.md
             test -s SECURITY.md
+            test -s PROVENANCE.md
 
 workflows:
   build-and-test:
