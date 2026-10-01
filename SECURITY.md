@@ -1,13 +1,14 @@
 # Security model
 
-This library is a policy proof, not a sandbox.
+This library is a decision boundary, not a sandbox.
 
-It assumes the caller:
+Its guarantees hold only when the caller:
 
-- invokes the gate before any external tool;
-- maps real capabilities to the registry honestly;
-- treats deny results as final for that attempt;
-- persists the append-only journal somewhere appropriate;
-- keeps secret-bearing values out of unreviewed fields.
+- invokes the policy gate before the external capability;
+- maps the real target and requested capability honestly;
+- treats denial and narrowed modes as binding;
+- records effect intent before an external write;
+- preserves ambiguous outcomes instead of blindly retrying;
+- persists the append-only journal in an appropriate store.
 
-The module deliberately has no network, browser, credential store, or provider integration.
+Sensitive values are redacted when journal records are written, but this library does not provide network isolation, credential storage, browser isolation, or provider authentication. Those remain responsibilities of the system that embeds it.
