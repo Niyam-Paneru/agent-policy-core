@@ -9,11 +9,24 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Run tests
+          name: Syntax-check source
+          command: |
+            for file in src/*.js; do
+              node --check "$file"
+            done
+      - run:
+          name: Run behavior tests
           command: npm test
       - run:
-          name: Run demo
+          name: Run walkthrough
           command: npm run demo
+      - run:
+          name: Verify public proof structure
+          command: |
+            test -s docs/workflow.svg
+            test -s docs/invariants.md
+            test -s docs/failure-modes.md
+            test -s SECURITY.md
 
 workflows:
   build-and-test:
