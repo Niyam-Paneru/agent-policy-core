@@ -1,14 +1,39 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520" role="img" aria-labelledby="t d">
-<title id="t">Agent policy overlap</title><desc id="d">Permission, fresh evidence, and known effect state overlap to allow an action.</desc>
+<title id="t">Agent policy architecture</title><desc id="d">A tool request is evaluated by grant, evidence freshness, provenance, and effect state before tool execution.</desc>
 <rect width="1200" height="520" fill="#f5f5f1"/>
-<text x="58" y="64" fill="#71716a" font-family="Arial,sans-serif" font-size="14" letter-spacing="3">AGENT POLICY</text>
-<text x="58" y="108" fill="#171714" font-family="Georgia,serif" font-size="35">An action exists only in the overlap.</text>
-<circle cx="455" cy="292" r="155" fill="#e4edb0" fill-opacity=".82" stroke="#596e35" stroke-width="2"/>
-<circle cx="625" cy="292" r="155" fill="#dce9de" fill-opacity=".82" stroke="#4f7555" stroke-width="2"/>
-<circle cx="540" cy="385" r="155" fill="#f1d9dc" fill-opacity=".82" stroke="#a4243b" stroke-width="2"/>
-<text x="390" y="245" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">permission</text><text x="390" y="272" text-anchor="middle" fill="#4e4e48" font-family="Arial,sans-serif" font-size="15">scope · origin · mode</text>
-<text x="690" y="245" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">fresh evidence</text><text x="690" y="272" text-anchor="middle" fill="#4e4e48" font-family="Arial,sans-serif" font-size="15">review still valid</text>
-<text x="540" y="452" text-anchor="middle" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">known effect state</text>
-<circle cx="540" cy="326" r="48" fill="#171714"/><text x="540" y="332" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="17" font-weight="700">ALLOW</text>
-<rect x="880" y="220" width="250" height="118" rx="18" fill="#fff" stroke="#d8d8d1" stroke-width="2"/><text x="905" y="255" fill="#a4243b" font-family="Arial,sans-serif" font-size="13" letter-spacing="2">OUTSIDE THE OVERLAP</text><text x="905" y="288" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">deny or stop</text><text x="905" y="316" fill="#71716a" font-family="Arial,sans-serif" font-size="14">ambiguity never widens permission</text>
+<text x="56" y="62" fill="#71716a" font-family="Arial,sans-serif" font-size="13" letter-spacing="3">AGENT POLICY CORE</text>
+<text x="56" y="105" fill="#171714" font-family="Georgia,serif" font-size="34">Tool access is a decision, not a personality trait.</text>
+
+<rect x="58" y="182" width="170" height="92" rx="14" fill="#fff" stroke="#171714" stroke-width="2"/>
+<text x="80" y="212" fill="#71716a" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">REQUEST</text>
+<text x="80" y="243" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">tool + origin</text>
+
+<rect x="305" y="142" width="320" height="172" rx="16" fill="#fff" stroke="#171714" stroke-width="2"/>
+<text x="330" y="176" fill="#71716a" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">POLICY GATE</text>
+<text x="330" y="209" fill="#171714" font-family="Georgia,serif" font-size="25">Four things must agree.</text>
+<text x="330" y="244" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">grant scope</text>
+<text x="455" y="244" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">fresh evidence</text>
+<text x="330" y="272" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">human provenance</text>
+<text x="455" y="272" fill="#4e4e48" font-family="Arial,sans-serif" font-size="14">known effect state</text>
+
+<rect x="710" y="145" width="195" height="82" rx="14" fill="#e4edb0" stroke="#596e35" stroke-width="2"/>
+<text x="734" y="176" fill="#596e35" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">ALLOW</text>
+<text x="734" y="204" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">tool may run</text>
+
+<rect x="710" y="250" width="195" height="82" rx="14" fill="#f1d9dc" stroke="#a4243b" stroke-width="2"/>
+<text x="734" y="281" fill="#a4243b" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">DENY / STOP</text>
+<text x="734" y="309" fill="#171714" font-family="Arial,sans-serif" font-size="20" font-weight="700">reason preserved</text>
+
+<rect x="976" y="182" width="170" height="92" rx="14" fill="#262722"/>
+<text x="998" y="212" fill="#d8d8d1" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">AFTER</text>
+<text x="998" y="243" fill="#fff" font-family="Arial,sans-serif" font-size="20" font-weight="700">append evidence</text>
+
+<g stroke="#171714" stroke-width="2" fill="none">
+<path d="M228 228 H305"/><path d="M625 195 H710"/><path d="M625 279 H710"/><path d="M905 186 H976"/>
+</g>
+<g fill="#171714"><path d="M297 222 l10 6 -10 6z"/><path d="M702 189 l10 6 -10 6z"/><path d="M702 273 l10 6 -10 6z"/><path d="M968 180 l10 6 -10 6z"/></g>
+
+<rect x="305" y="365" width="600" height="70" rx="12" fill="#fff" stroke="#d8d8d1"/>
+<text x="330" y="394" fill="#a4243b" font-family="Arial,sans-serif" font-size="12" letter-spacing="2">AMBIGUOUS EFFECT</text>
+<text x="330" y="420" fill="#171714" font-family="Georgia,serif" font-size="19">Stop and verify. Never widen permission by retrying blindly.</text>
 </svg>
