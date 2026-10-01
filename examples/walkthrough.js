@@ -101,8 +101,8 @@ console.log(bold("\n7. Credentials never reach the log\n"));
 journal.append({
   effect_key: "task-2",
   phase: "effect_intent",
-  url: "https://talk.example.net/redirect?token=sk-live-9f3a2b&next=/home",
-  payload: { authorization: "Bearer sk-live-9f3a2b", user_id: 41207 },
+  url: "https://talk.example.net/redirect?token=fake-redact-me&next=/home",
+  payload: { authorization: "Bearer fake-redact-me", user_id: 41207 },
 });
 const [last] = journal.records.slice(-1);
 console.log(`  ${"logged url".padEnd(46)} ${dim(last.url)}`);
