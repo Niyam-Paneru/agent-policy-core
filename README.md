@@ -2,40 +2,65 @@
 
 A deny-by-default policy gate for tool-calling agents. It keeps **authorization** separate from **effect-state/idempotency**, so a request can be permitted and still be blocked from replay.
 
-*Sometimes the correct tool call is no tool call.*
+**Sometimes the correct tool call is no tool call.**
+
+This public sample extracts policy and effect-state patterns from my private browser-control work. I can integrate and adapt these gates within broader agent applications and automation workflows; the code here makes the decisions inspectable without exposing the surrounding private systems.
 
 ## Authorization narrows; never widens
 
 ```mermaid
 flowchart TD
-    A["request"] --> B{"platform + action reviewed?"}
-    B -- no --> D["DENY<br/>unsupported platform/action"]
-    B -- yes --> C{"exact target valid?"}
-    C -- no --> E["DENY<br/>redirect_outside_allowlist"]
-    C -- yes --> P{"provenance okay?<br/>(when required)"}
-    P -- no --> Q["DENY<br/>provenance_blocked"]
-    P -- yes --> M{"requested mode granted?"}
-    M -- no --> N["DENY mode_not_allowed<br/>return safer effectiveMode"]
-    M -- yes --> F{"policy evidence fresh?"}
-    F -- yes --> G["ALLOW<br/>clamp requested write caps"]
-    F -- no --> S{"requested mode is a safe fallback?"}
-    S -- yes --> H["ALLOW<br/>attended_prepare / manual_only"]
-    S -- no --> I["DENY policy_evidence_stale<br/>narrow effectiveMode"]
+    A["<b>Request</b>"] --> B{"Platform + action reviewed?"}
+    B -- No --> D["<b>Deny</b><br/>unsupported platform/action"]
+    B -- Yes --> C{"Exact target valid?"}
+    C -- No --> E["<b>Deny</b><br/>redirect_outside_allowlist"]
+    C -- Yes --> P{"Required provenance valid?"}
+    P -- No --> Q["<b>Deny</b><br/>provenance_blocked"]
+    P -- Yes --> M{"Requested mode granted?"}
+    M -- No --> N["<b>Deny + safer effectiveMode</b><br/>mode_not_allowed"]
+    M -- Yes --> F["<b>Check evidence freshness</b><br/>next diagram"]
+    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
+    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
+    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    class A,B,C,P,M,F input;
+    class D,E,Q,N stop;
 ```
 
 `src/policy.js` evaluates the reviewed registry, target, mode, evidence freshness, and required provenance. The mode check runs before the freshness check so a permanently ungranted mode is not misreported as a temporary stale-evidence problem.
 
-## Effect state is a separate decision
+## Freshness can narrow the granted mode
+
+Safe fallback modes are `attended_prepare` and `manual_only`. A permitted request has its requested write caps clamped to the registry limits.
 
 ```mermaid
 flowchart LR
-    A["authorization allowed"] --> B["check effect key"]
-    B --> C{"latest effect phase?"}
-    C -- none --> D["eligible to proceed"]
-    C -- effect_intent --> E["BLOCK<br/>duplicate_intent"]
-    C -- effect_confirmed --> F["BLOCK<br/>duplicate_effect"]
-    C -- effect_ambiguous --> G["BLOCK<br/>ambiguous_side_effect"]
-    G --> H["stop + verify<br/>do not replay"]
+    F{"Evidence fresh?"} -- Yes --> G["<b>Allow</b><br/>Clamp write caps"]
+    F -- No --> S{"Safe fallback mode?"}
+    S -- Yes --> G
+    S -- No --> I["<b>Deny + narrower mode</b><br/>policy_evidence_stale"]
+    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
+    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
+    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    class F,S input;
+    class G pass;
+    class I stop;
+```
+
+## Effect state is a separate decision
+
+```mermaid
+flowchart TB
+    A["<b>Authorization allowed</b>"] --> C{"checkEffect latest phase?"}
+    C -- None --> D["<b>Eligible to proceed</b>"]
+    C -- effect_intent --> E["<b>Block</b><br/>duplicate_intent"]
+    C -- effect_confirmed --> F["<b>Block</b><br/>duplicate_effect"]
+    C -- effect_ambiguous --> G["<b>Stop + verify</b><br/>ambiguous_side_effect"]
+    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
+    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
+    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    class A,C input;
+    class D pass;
+    class E,F,G stop;
 ```
 
 `src/dedupe.js` treats intent, confirmed effects, and ambiguous effects as hard stops. `createPolicyHook()` can also block confirmed or ambiguous reuse of the same content across different targets inside the configured dedupe window.
