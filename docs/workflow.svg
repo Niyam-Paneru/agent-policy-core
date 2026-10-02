@@ -55,10 +55,11 @@
   <path d="M158 412 V440" class="line"/>
   <path d="M258 484 H344" class="line"/>
   <text x="289" y="476" class="small muted">NO</text>
-  <rect x="344" y="449" width="190" height="70" rx="4" class="deny"/>
+  <rect x="344" y="449" width="190" height="88" rx="4" class="deny"/>
   <text x="439" y="472" text-anchor="middle" class="mono" fill="#991b1b">DENY · mode_not_allowed</text>
   <text x="439" y="493" text-anchor="middle" class="small muted">effectiveMode may narrow to</text>
-  <text x="439" y="510" text-anchor="middle" class="mono muted">attended_prepare / manual_only</text>
+  <text x="439" y="510" text-anchor="middle" class="mono muted">attended_prepare</text>
+  <text x="439" y="527" text-anchor="middle" class="mono muted">or manual_only</text>
 
   <polygon points="158,556 258,600 158,644 58,600" class="gate"/>
   <text x="158" y="595" text-anchor="middle" class="body ink">fresh evidence +</text>
