@@ -1,19 +1,9 @@
 # Provenance
 
-This public repository is a reviewable policy slice derived from patterns used in my private Browser Bridge work.
+Agent Policy Core is a transport-agnostic extraction of policy and effect-state patterns used in private browser-control work.
 
-## Preserved
+The repository keeps reviewed capability rules, exact-origin/action checks, evidence freshness, permission narrowing, idempotency, ambiguous-effect blocking, cross-target duplicate detection, and redacted append-only records.
 
-- explicit capability grants;
-- origin/action scoping;
-- expiring review evidence;
-- effect idempotency and ambiguous-state blocking;
-- audit-oriented redaction.
+It excludes the private browser control plane, local grant store, credentials, machine state, network/browser drivers, and site-specific workflows.
 
-## Rewritten for public review
-
-The public code is smaller and transport-agnostic. It does not expose the private browser control plane, local grants, machine state, or site-specific workflows.
-
-## Claim boundary
-
-This repo demonstrates the policy semantics. It does not claim a browser action happened, a target site was automated, or a private deployment is currently running.
+The library can decide and record whether an external action is allowed or safe to repeat. It cannot prove that an external action actually happened unless the caller records that evidence.
