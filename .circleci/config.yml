@@ -23,7 +23,7 @@ jobs:
       - run:
           name: Verify public proof structure
           command: |
-            test -s docs/workflow.svg
+            test -s docs/verification.md
             test -s docs/invariants.md
             test -s docs/failure-modes.md
             test -s SECURITY.md
