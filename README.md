@@ -9,42 +9,46 @@ This public sample extracts policy and effect-state patterns from my private bro
 ## Authorization narrows; never widens
 
 ```mermaid
-flowchart TD
-    A["<b>Request</b>"] --> B{"Platform + action reviewed?"}
-    B -- No --> D["<b>Deny</b><br/>unsupported platform/action"]
-    B -- Yes --> C{"Exact target valid?"}
-    C -- No --> E["<b>Deny</b><br/>redirect_outside_allowlist"]
-    C -- Yes --> P{"Required provenance valid?"}
-    P -- No --> Q["<b>Deny</b><br/>provenance_blocked"]
-    P -- Yes --> M{"Requested mode granted?"}
-    M -- No --> N["<b>Deny + safer effectiveMode</b><br/>mode_not_allowed"]
-    M -- Yes --> F["<b>Check evidence freshness</b><br/>next diagram"]
+flowchart LR
+    A["<b>Request</b>"] --> B{"Admission valid?"}
+    B -- No --> D["<b>Deny</b><br/>Specific reason"]
+    B -- Yes --> F["<b>Check mode + freshness</b>"]
     classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
     classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
     classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
-    class A,B,C,P,M,F input;
-    class D,E,Q,N stop;
+    class A,B,F input;
+    class D stop;
 ```
 
-`src/policy.js` evaluates the reviewed registry, target, mode, evidence freshness, and required provenance. The mode check runs before the freshness check so a permanently ungranted mode is not misreported as a temporary stale-evidence problem.
+`src/policy.js` checks admission in this exact order:
 
-## Freshness can narrow the granted mode
+1. **Reviewed registry:** supported platform, then allowed action; failures return `unsupported_platform` or `unsupported_action`.
+2. **Exact target:** parse the URL, require the claimed origin to match, reject embedded credentials, and require HTTPS except the explicit HTTP loopback fixture. Enforce origin ownership and the platform's reviewed origin/path rules; failures return `redirect_outside_allowlist`.
+3. **Required provenance:** news-aggregator comments require a nonempty provenance object whose values are all `human_authored_unedited`; failure returns `provenance_blocked`.
 
-Safe fallback modes are `attended_prepare` and `manual_only`. A permitted request has its requested write caps clamped to the registry limits.
+## Mode and freshness can narrow permission
+
+The mode check runs before freshness, so an ungranted mode cannot be mistaken for stale evidence. Safe fallback modes are `attended_prepare` and `manual_only`.
 
 ```mermaid
 flowchart LR
-    F{"Evidence fresh?"} -- Yes --> G["<b>Allow</b><br/>Clamp write caps"]
-    F -- No --> S{"Safe fallback mode?"}
+    M{"Mode granted?"} -- No --> N["<b>Deny</b><br/>mode_not_allowed"]
+    M -- Yes --> F{"Fresh?"}
+    F -- Yes --> G{"Scope valid?"}
+    F -- No --> S{"Safe fallback?"}
     S -- Yes --> G
-    S -- No --> I["<b>Deny + narrower mode</b><br/>policy_evidence_stale"]
+    S -- No --> I["<b>Deny</b><br/>policy_evidence_stale"]
+    G -- No --> N
+    G -- Yes --> H["<b>Allow</b><br/>Clamp caps"]
     classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
     classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
     classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
-    class F,S input;
-    class G pass;
-    class I stop;
+    class M,F,S,G input;
+    class H pass;
+    class I,N stop;
 ```
+
+Both denials return a safer `effectiveMode`. After freshness, the final scope check still refuses `generic_form` browser mode without a reviewed per-origin browser grant (`mode_not_allowed`). Requests that pass have their requested write caps clamped to registry limits. Missing, invalid, or future-dated review evidence is stale; a generic form without a reviewed domain entry is also stale.
 
 ## Effect state is a separate decision
 
