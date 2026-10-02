@@ -2,53 +2,43 @@
 
 A deny-by-default policy gate for tool-calling agents. It keeps **authorization** separate from **effect-state/idempotency**, so a request can be permitted and still be blocked from replay.
 
-![Authorization and effect-state gate tree](docs/workflow.svg)
+*Sometimes the correct tool call is no tool call.*
 
-## Verify it
+## Authorization narrows; never widens
 
-Requires Node.js 20+ and has no runtime dependencies.
-
-```bash
-npm test
-npm run demo
-for file in src/*.js; do node --check "$file"; done
+```mermaid
+flowchart TD
+    A["request"] --> B{"platform + action reviewed?"}
+    B -- no --> D["DENY<br/>unsupported platform/action"]
+    B -- yes --> C{"exact target valid?"}
+    C -- no --> E["DENY<br/>redirect_outside_allowlist"]
+    C -- yes --> P{"provenance okay?<br/>(when required)"}
+    P -- no --> Q["DENY<br/>provenance_blocked"]
+    P -- yes --> M{"requested mode granted?"}
+    M -- no --> N["DENY mode_not_allowed<br/>return safer effectiveMode"]
+    M -- yes --> F{"policy evidence fresh?"}
+    F -- yes --> G["ALLOW<br/>clamp requested write caps"]
+    F -- no --> S{"requested mode is a safe fallback?"}
+    S -- yes --> H["ALLOW<br/>attended_prepare / manual_only"]
+    S -- no --> I["DENY policy_evidence_stale<br/>narrow effectiveMode"]
 ```
 
-CircleCI runs the same behavior tests, walkthrough, source syntax checks, and proof-file checks.
+`src/policy.js` evaluates the reviewed registry, target, mode, evidence freshness, and required provenance. The mode check runs before the freshness check so a permanently ungranted mode is not misreported as a temporary stale-evidence problem.
 
-## Control flow
+## Effect state is a separate decision
 
-### 1. Authorization
+```mermaid
+flowchart LR
+    A["authorization allowed"] --> B["check effect key"]
+    B --> C{"latest effect phase?"}
+    C -- none --> D["eligible to proceed"]
+    C -- effect_intent --> E["BLOCK<br/>duplicate_intent"]
+    C -- effect_confirmed --> F["BLOCK<br/>duplicate_effect"]
+    C -- effect_ambiguous --> G["BLOCK<br/>ambiguous_side_effect"]
+    G --> H["stop + verify<br/>do not replay"]
+```
 
-`src/policy.js` evaluates the requested platform, action, target, execution mode, evidence freshness, and any provenance requirement against the reviewed registry in `src/registry.js`.
-
-The gate can **narrow** authority; it cannot widen it. Examples implemented here:
-
-- unknown platform/action → deny;
-- origin/path mismatch or credential-bearing URL → deny;
-- execution mode outside the reviewed grant → deny with a safer effective mode where available;
-- stale evidence → deny higher-autonomy execution and narrow to a safer mode;
-- missing required human provenance → deny;
-- requested write caps → clamp to local limits.
-
-Policy decisions return explicit reason strings such as `unsupported_action`, `mode_not_allowed`, `policy_evidence_stale`, and `provenance_blocked`.
-
-### 2. Effect state / idempotency
-
-Authorization does not answer whether an external write is safe to repeat. `src/dedupe.js` and `src/journal.js` handle that separately.
-
-For the same effect key:
-
-| Latest effect state | Result |
-|---|---|
-| none | eligible to proceed |
-| `effect_intent` | block as `duplicate_intent` |
-| `effect_confirmed` | block as `duplicate_effect` |
-| `effect_ambiguous` | block as `ambiguous_side_effect` |
-
-An ambiguous result means **stop and verify**, not retry. The blocking result includes the prior record where implemented, and the append-only journal redacts sensitive fields before persistence.
-
-> Uncertainty is not permission to click twice.
+`src/dedupe.js` treats intent, confirmed effects, and ambiguous effects as hard stops. `createPolicyHook()` can also block confirmed or ambiguous reuse of the same content across different targets inside the configured dedupe window.
 
 ## Code to inspect first
 
@@ -60,10 +50,12 @@ An ambiguous result means **stop and verify**, not retry. The blocking result in
 | [`src/journal.js`](src/journal.js) | append-only effect evidence with redaction |
 | [`test/policy.test.js`](test/policy.test.js) | authorization boundary tests |
 | [`test/dedupe.test.js`](test/dedupe.test.js) | effect-state/idempotency tests |
-| [`examples/walkthrough.js`](examples/walkthrough.js) | runnable decision walkthrough |
+| [`examples/walkthrough.js`](examples/walkthrough.js) | decision walkthrough |
 
-## Scope and claim boundary
+## Evidence and boundaries
+
+CircleCI is configured to check source syntax, behavior tests, the walkthrough, and required public docs. Exact local commands and expected checks: [docs/verification.md](docs/verification.md).
 
 This is a policy library, not a sandbox or browser driver. It has no network client, browser integration, credential store, or provider SDK. The caller must invoke the gate before external tools and persist/use the journal appropriately.
 
-See [SECURITY.md](SECURITY.md) for assumptions, [PROVENANCE.md](PROVENANCE.md) for what was preserved from the private Browser Bridge work, and [docs/invariants.md](docs/invariants.md) / [docs/failure-modes.md](docs/failure-modes.md) for the failure contract.
+See [SECURITY.md](SECURITY.md), [PROVENANCE.md](PROVENANCE.md), [docs/invariants.md](docs/invariants.md), and [docs/failure-modes.md](docs/failure-modes.md) for the assumptions and failure contract.
