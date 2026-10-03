@@ -9,13 +9,22 @@ This public sample extracts policy and effect-state patterns from my private bro
 ## Authorization narrows; never widens
 
 ```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 28
+    rankSpacing: 42
+---
 flowchart LR
-    A["<b>Request</b>"] --> B{"Admission valid?"}
-    B -- No --> D["<b>Deny</b><br/>Specific reason"]
-    B -- Yes --> F["<b>Check mode + freshness</b>"]
-    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
-    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
-    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    accTitle: Authorization narrows; never widens
+    accDescr: Decision flow for authorization narrows; never widens.
+    A["Request"] --> B{"Admission valid?"}
+    B -- No --> D["Deny<br/>Specific reason"]
+    B -- Yes --> F["Check mode + freshness"]
+    classDef input stroke-width:1.5px;
+    classDef pass stroke-width:2.5px;
+    classDef stop stroke-width:2px,stroke-dasharray:5 3;
     class A,B,F input;
     class D stop;
 ```
@@ -31,18 +40,27 @@ flowchart LR
 The mode check runs before freshness, so an ungranted mode cannot be mistaken for stale evidence. Safe fallback modes are `attended_prepare` and `manual_only`.
 
 ```mermaid
-flowchart LR
-    M{"Mode granted?"} -- No --> N["<b>Deny</b><br/>mode_not_allowed"]
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 28
+    rankSpacing: 42
+---
+flowchart TB
+    accTitle: Mode and freshness can narrow permission
+    accDescr: Decision flow for mode and freshness can narrow permission.
+    M{"Mode granted?"} -- No --> N["Deny<br/>mode_not_allowed"]
     M -- Yes --> F{"Fresh?"}
     F -- Yes --> G{"Scope valid?"}
     F -- No --> S{"Safe fallback?"}
     S -- Yes --> G
-    S -- No --> I["<b>Deny</b><br/>policy_evidence_stale"]
+    S -- No --> I["Deny<br/>policy_evidence_stale"]
     G -- No --> N
-    G -- Yes --> H["<b>Allow</b><br/>Clamp caps"]
-    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
-    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
-    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    G -- Yes --> H["Allow<br/>Clamp caps"]
+    classDef input stroke-width:1.5px;
+    classDef pass stroke-width:2.5px;
+    classDef stop stroke-width:2px,stroke-dasharray:5 3;
     class M,F,S,G input;
     class H pass;
     class I,N stop;
@@ -53,15 +71,24 @@ Both denials return a safer `effectiveMode`. After freshness, the final scope ch
 ## Effect state is a separate decision
 
 ```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 28
+    rankSpacing: 42
+---
 flowchart TB
-    A["<b>Authorization allowed</b>"] --> C{"checkEffect latest phase?"}
-    C -- None --> D["<b>Eligible to proceed</b>"]
-    C -- effect_intent --> E["<b>Block</b><br/>duplicate_intent"]
-    C -- effect_confirmed --> F["<b>Block</b><br/>duplicate_effect"]
-    C -- effect_ambiguous --> G["<b>Stop + verify</b><br/>ambiguous_side_effect"]
-    classDef input fill:#e8e6df,stroke:#55534a,color:#20201d,stroke-width:2px;
-    classDef pass fill:#d2e5d8,stroke:#38734d,color:#183923,stroke-width:2px;
-    classDef stop fill:#f4dadd,stroke:#b14253,color:#611c29,stroke-width:2px;
+    accTitle: Effect state is a separate decision
+    accDescr: Decision flow for effect state is a separate decision.
+    A["Authorization allowed"] --> C{"checkEffect latest phase?"}
+    C -- None --> D["Eligible to proceed"]
+    C -- effect_intent --> E["Block<br/>duplicate_intent"]
+    C -- effect_confirmed --> F["Block<br/>duplicate_effect"]
+    C -- effect_ambiguous --> G["Stop + verify<br/>ambiguous_side_effect"]
+    classDef input stroke-width:1.5px;
+    classDef pass stroke-width:2.5px;
+    classDef stop stroke-width:2px,stroke-dasharray:5 3;
     class A,C input;
     class D pass;
     class E,F,G stop;
