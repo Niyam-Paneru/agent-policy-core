@@ -266,3 +266,24 @@ test("combined hook keeps authorization denial ahead of replay checks", () => {
   const refused = hook({ idempotency: { effect_key: "effect-1" } });
   assert.deepEqual(refused, { allowed: false, reason: "unsupported_action" });
 });
+
+test("journal redacts sensitive top-level and metadata fields before JSONL persistence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    effect_key: "effect-123",
+    phase: "effect_intent",
+    api_key: "synthetic-top-level-key",
+    metadata: {
+      token: "synthetic-nested-key",
+      evidence: "public-evidence",
+    },
+  });
+
+  assert.equal(record.api_key, "[REDACTED]");
+  assert.equal(record.metadata.token, "[REDACTED]");
+  assert.equal(record.metadata.evidence, "public-evidence");
+  const persisted = journal.toJSONL();
+  assert.equal(persisted.includes("synthetic-top-level-key"), false);
+  assert.equal(persisted.includes("synthetic-nested-key"), false);
+  assert.equal(new Dedupe(journal).checkEffect("effect-123").reason, "duplicate_intent");
+});
