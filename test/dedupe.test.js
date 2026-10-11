@@ -173,3 +173,60 @@ test("the policy hook checks idempotency only after policy allows the task", () 
   assert.equal(blocked.allowed, false);
   assert.equal(blocked.reason, "duplicate_content_cross_target");
 });
+
+test("caller timestamps cannot backdate a confirmed effect past cross-target dedupe", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    timestamp: "1990-01-01T00:00:00Z",
+    effect_key: "e1",
+    phase: "effect_confirmed",
+    cross_target_content_key: "post-42",
+    target_fingerprint: "site-a",
+  });
+
+  assert.equal(record.timestamp, "2026-09-29T10:00:00.000Z");
+  assert.equal(
+    new Dedupe(journal).checkCrossTarget({
+      contentKey: "post-42",
+      targetFingerprint: "site-b",
+      windowMs: 7 * 24 * 60 * 60 * 1000,
+      now: Date.parse("2026-09-29T11:00:00Z"),
+    }).blocked,
+    true,
+  );
+});
+
+test("a caller cannot erase or rewrite append-only effect evidence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const metadata = { label: "initial" };
+  const payload = { nested: { keep: "original", authorization: "secret" } };
+  const record = journal.append({
+    effect_key: "e1",
+    phase: "effect_ambiguous",
+    metadata,
+    payload,
+  });
+
+  journal.records.pop(); // mutates a snapshot, not the private ledger
+  metadata.label = "rewritten"; // must not mutate stored evidence
+  payload.nested.keep = "rewritten";
+  assert.equal(journal.records.length, 1);
+  assert.equal(journal.records[0].metadata.label, "initial");
+  assert.equal(journal.records[0].payload.nested.keep, "original");
+  assert.equal(journal.records[0].payload.nested.authorization, "[REDACTED]");
+  assert.equal(new Dedupe(journal).checkEffect("e1").reason, "ambiguous_side_effect");
+  assert.equal(Object.isFrozen(record.metadata), true);
+  assert.equal(Object.isFrozen(record.payload.nested), true);
+  assert.throws(() => { record.payload.nested.keep = "tampered"; }, TypeError);
+});
+
+test("restored JSONL records are immutable after rehydration", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({ effect_key: "e1", phase: "effect_intent", payload: { nested: { count: 1 } } });
+  const restored = Journal.fromJSONL(journal.toJSONL(), at("2026-09-29T11:00:00Z"));
+  const record = restored.records[0];
+  assert.equal(Object.isFrozen(record), true);
+  assert.equal(Object.isFrozen(record.payload.nested), true);
+  assert.throws(() => { record.payload.nested.count = 99; }, TypeError);
+  assert.equal(new Dedupe(restored).checkEffect("e1").reason, "duplicate_intent");
+});
