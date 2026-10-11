@@ -368,3 +368,32 @@ test("cross-target dedupe traverses an immutable journal snapshot once", () => {
   assert.equal(decision.blocked, true);
   assert.equal(reads, 1);
 });
+
+test("unknown or missing later effect phase cannot clear an earlier confirmed effect", () => {
+  for (const phase of ["unrecognized", undefined, null]) {
+    const journal = new Journal(at("2026-09-29T10:00:00Z"));
+    journal.append({ effect_key: "effect-7", phase: "effect_confirmed" });
+    journal.append({ effect_key: "effect-7", ...(phase === undefined ? {} : { phase }) });
+    const dedupe = new Dedupe(journal);
+    const blocked = dedupe.checkEffect("effect-7");
+    assert.equal(blocked.blocked, true, String(phase));
+    assert.equal(blocked.reason, "ambiguous_side_effect");
+    const hook = createPolicyHook({
+      dedupe,
+      policyEngine: () => ({ allowed: true, effectiveMode: "attended_prepare" }),
+    });
+    const decision = hook({ idempotency: { effect_key: "effect-7" } });
+    assert.equal(decision.allowed, false);
+    assert.equal(decision.reason, "ambiguous_side_effect");
+  }
+});
+
+test("unknown phase in restored legacy journal never authorizes replay", () => {
+  const journal = Journal.fromJSONL(
+    JSON.stringify({ effect_key: "legacy-write", phase: "future_effect_phase" }) + "\n"
+  );
+  const decision = new Dedupe(journal).checkEffect("legacy-write");
+  assert.equal(decision.blocked, true);
+  assert.equal(decision.reason, "ambiguous_side_effect");
+  assert.equal(new Dedupe(journal).checkEffect("unknown-key").blocked, false);
+});
