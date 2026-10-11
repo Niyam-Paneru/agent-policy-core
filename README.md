@@ -94,7 +94,7 @@ flowchart TB
     class E,F,G stop;
 ```
 
-`src/dedupe.js` treats intent, confirmed effects, and ambiguous effects as hard stops. `createPolicyHook()` can also block confirmed or ambiguous reuse of the same content across different targets inside the configured dedupe window. Journal event timestamps come from its clock, not caller-supplied fields; saved records are immutable snapshots, and reading `records` returns a defensive array copy.
+`src/dedupe.js` treats intent, confirmed effects, and ambiguous effects as hard stops. When an `idempotency.effect_key` is supplied, `createPolicyHook()` checks the exact effect before cross-target reuse. The hook can also block confirmed or ambiguous reuse of the same content across different targets inside the configured dedupe window. Journal event timestamps come from its clock, not caller-supplied fields; saved records are immutable snapshots, and reading `records` returns a defensive array copy.
 
 ## Code to inspect first
 
