@@ -54,15 +54,19 @@ export function redactUrl(rawUrl) {
 
 // Clone before freezing so a caller cannot change an audit record by retaining
 // a reference to metadata passed into append(). Evidence is JSON-like data.
-function frozenRecordSnapshot(value, depth = 0) {
-  if (depth > 8) return "[TRUNCATED]";
+function frozenRecordSnapshot(value, seen = new WeakSet()) {
   if (value === null || typeof value !== "object") return value;
-  if (Array.isArray(value)) {
-    return Object.freeze(value.map((item) => frozenRecordSnapshot(item, depth + 1)));
-  }
-  return Object.freeze(Object.fromEntries(
-    Object.entries(value).map(([key, item]) => [key, frozenRecordSnapshot(item, depth + 1)]),
-  ));
+  // Dates previously serialized as ISO strings, so preserve that JSON shape.
+  if (value instanceof Date) return value.toJSON();
+  if (seen.has(value)) throw new TypeError("journal records must be acyclic");
+  seen.add(value);
+  const copy = Array.isArray(value)
+    ? value.map((item) => frozenRecordSnapshot(item, seen))
+    : Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, frozenRecordSnapshot(item, seen)]),
+    );
+  seen.delete(value);
+  return Object.freeze(copy);
 }
 
 export class Journal {
