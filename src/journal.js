@@ -96,7 +96,9 @@ export class Journal {
 
   append(entry) {
     const record = frozenSnapshot({
-      ...entry,
+      // Redact *all* entry fields before persistence, not only the payload.
+      // Metadata and top-level fields may contain credential-shaped keys too.
+      ...redactValue(entry),
       // The clock, never the caller, owns event time. Timestamp spoofing can
       // suppress cross-target duplicate checks by backdating prior effects.
       timestamp: this.#now().toISOString(),
