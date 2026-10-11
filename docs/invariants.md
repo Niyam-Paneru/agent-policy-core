@@ -9,6 +9,6 @@ These are the rules the implementation is not allowed to “optimize away.”
 5. **Secrets are redacted before persistence.** The audit trail should not become a credential archive.
 6. **Policy runs before transport.** A tool call is not created first and justified later.
 
-The public tests cover the decision boundary. Provider/browser integrations belong outside this core.
+7. **Journal history is append-only within the process.** Reading records must never expose the mutable backing array or mutable nested records; caller-supplied timestamps cannot replace the host clock. Deep JSON-like metadata is preserved, and cyclic records fail before being appended. This does not provide tamper-evident persistence.
 
-7. **Journal history is append-only within the process.** Reading records must never expose the mutable backing array or a mutable nested record; caller-supplied timestamps cannot replace the host clock. This does not provide tamper-evident persistence.
+The public tests cover the decision boundary. Provider/browser integrations belong outside this core.
