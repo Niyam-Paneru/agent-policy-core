@@ -8,5 +8,6 @@ These are the rules the implementation is not allowed to “optimize away.”
 4. **Human provenance cannot be forged by the agent.** If a capability requires human-authored content, generated text does not satisfy it.
 5. **Secrets are redacted before persistence.** The audit trail should not become a credential archive.
 6. **Policy runs before transport.** A tool call is not created first and justified later.
+7. **The effect journal cannot be rewritten through public references.** Caller-provided timestamps cannot backdate events, and both new and restored records have immutable, detached snapshots.
 
 The public tests cover the decision boundary. Provider/browser integrations belong outside this core.
