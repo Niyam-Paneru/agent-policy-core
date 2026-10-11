@@ -15,6 +15,9 @@ A useful log field may contain a credential. Response: redact before persistence
 ## Provenance mismatch
 Human-authored content is required, but the agent generated the payload itself. Response: deny the irreversible action.
 
+## Authorized action is replayed despite existing effect intent
+A combined authorization/idempotency hook that checks only cross-target content can permit an exact same-effect retry even after the ledger recorded intent, confirmation or ambiguous completion. Response: check the supplied `idempotency.effect_key` through `checkEffect` after authorization and before cross-target analysis. An absent effect key cannot be deduplicated by this check; callers still own stable effect identity.
+
 ## Effect journal tampering and timestamp spoofing
 Returning the private records array lets a caller erase ambiguous effects and bypass replay protection. Caller-controlled event timestamps can also backdate a confirmed effect outside a duplicate-content window. Response: immutable detached record snapshots, defensive collection reads, and clock-owned event timestamps.
 
