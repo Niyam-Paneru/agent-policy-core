@@ -50,7 +50,15 @@ export class Dedupe {
       };
     }
 
-    return { blocked: false };
+    // A matching key with an unknown/missing phase is not evidence that an
+    // earlier intent or completed effect can safely be replayed. This can occur
+    // with legacy ledger rows or a later unrecognized status record.
+    return {
+      blocked: true,
+      reason: "ambiguous_side_effect",
+      phase: latest.phase ?? null,
+      record: latest,
+    };
   }
 
   checkTask(taskId) {
