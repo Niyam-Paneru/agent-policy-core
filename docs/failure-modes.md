@@ -15,5 +15,8 @@ A useful log field may contain a credential. Response: redact before persistence
 ## Provenance mismatch
 Human-authored content is required, but the agent generated the payload itself. Response: deny the irreversible action.
 
+## Effect journal tampering and timestamp spoofing
+Returning the private records array lets a caller erase ambiguous effects and bypass replay protection. Caller-controlled event timestamps can also backdate a confirmed effect outside a duplicate-content window. Response: immutable detached record snapshots, defensive collection reads, and clock-owned event timestamps.
+
 ## Unknown capability
 A new tool or action appears without a reviewed registry entry. Response: default deny.
