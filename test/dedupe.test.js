@@ -173,3 +173,254 @@ test("the policy hook checks idempotency only after policy allows the task", () 
   assert.equal(blocked.allowed, false);
   assert.equal(blocked.reason, "duplicate_content_cross_target");
 });
+
+test("caller timestamps cannot backdate a confirmed effect past cross-target dedupe", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    timestamp: "1990-01-01T00:00:00Z",
+    effect_key: "e1",
+    phase: "effect_confirmed",
+    cross_target_content_key: "post-42",
+    target_fingerprint: "site-a",
+  });
+
+  assert.equal(record.timestamp, "2026-09-29T10:00:00.000Z");
+  assert.equal(
+    new Dedupe(journal).checkCrossTarget({
+      contentKey: "post-42",
+      targetFingerprint: "site-b",
+      windowMs: 7 * 24 * 60 * 60 * 1000,
+      now: Date.parse("2026-09-29T11:00:00Z"),
+    }).blocked,
+    true,
+  );
+});
+
+test("a caller cannot erase or rewrite append-only effect evidence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const metadata = { label: "initial" };
+  const payload = { nested: { keep: "original", authorization: "secret" } };
+  const record = journal.append({
+    effect_key: "e1",
+    phase: "effect_ambiguous",
+    metadata,
+    payload,
+  });
+
+  journal.records.pop(); // mutates a snapshot, not the private ledger
+  metadata.label = "rewritten"; // must not mutate stored evidence
+  payload.nested.keep = "rewritten";
+  assert.equal(journal.records.length, 1);
+  assert.equal(journal.records[0].metadata.label, "initial");
+  assert.equal(journal.records[0].payload.nested.keep, "original");
+  assert.equal(journal.records[0].payload.nested.authorization, "[REDACTED]");
+  assert.equal(new Dedupe(journal).checkEffect("e1").reason, "ambiguous_side_effect");
+  assert.equal(Object.isFrozen(record.metadata), true);
+  assert.equal(Object.isFrozen(record.payload.nested), true);
+  assert.throws(() => { record.payload.nested.keep = "tampered"; }, TypeError);
+});
+
+test("restored JSONL records are immutable after rehydration", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({ effect_key: "e1", phase: "effect_intent", payload: { nested: { count: 1 } } });
+  const restored = Journal.fromJSONL(journal.toJSONL(), at("2026-09-29T11:00:00Z"));
+  const record = restored.records[0];
+  assert.equal(Object.isFrozen(record), true);
+  assert.equal(Object.isFrozen(record.payload.nested), true);
+  assert.throws(() => { record.payload.nested.count = 99; }, TypeError);
+  assert.equal(new Dedupe(restored).checkEffect("e1").reason, "duplicate_intent");
+});
+
+test("combined policy hook refuses same-effect replays for every effect phase", () => {
+  const cases = [
+    ["effect_intent", "duplicate_intent"],
+    ["effect_confirmed", "duplicate_effect"],
+    ["effect_ambiguous", "ambiguous_side_effect"],
+  ];
+
+  for (const [phase, reason] of cases) {
+    const journal = new Journal(at("2026-09-29T10:00:00Z"));
+    journal.append({ effect_key: "effect-1", phase });
+    const hook = createPolicyHook({
+      dedupe: new Dedupe(journal),
+      policyEngine: () => ({ allowed: true, effectiveMode: "attended_prepare" }),
+    });
+
+    const replay = hook({ idempotency: { effect_key: "effect-1" } });
+    assert.equal(replay.allowed, false, phase);
+    assert.equal(replay.reason, reason);
+    assert.equal(journal.records.length, 1, "policy hook must not append side effects");
+
+    const fresh = hook({ idempotency: { effect_key: "effect-2" } });
+    assert.equal(fresh.allowed, true);
+  }
+});
+
+test("combined hook keeps authorization denial ahead of replay checks", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({ effect_key: "effect-1", phase: "effect_confirmed" });
+  const hook = createPolicyHook({
+    dedupe: new Dedupe(journal),
+    policyEngine: () => ({ allowed: false, reason: "unsupported_action" }),
+  });
+  const refused = hook({ idempotency: { effect_key: "effect-1" } });
+  assert.deepEqual(refused, { allowed: false, reason: "unsupported_action" });
+});
+
+test("journal redacts sensitive top-level and metadata fields before JSONL persistence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    effect_key: "effect-123",
+    phase: "effect_intent",
+    api_key: "synthetic-top-level-key",
+    metadata: {
+      token: "synthetic-nested-key",
+      evidence: "public-evidence",
+    },
+  });
+
+  assert.equal(record.api_key, "[REDACTED]");
+  assert.equal(record.metadata.token, "[REDACTED]");
+  assert.equal(record.metadata.evidence, "public-evidence");
+  const persisted = journal.toJSONL();
+  assert.equal(persisted.includes("synthetic-top-level-key"), false);
+  assert.equal(persisted.includes("synthetic-nested-key"), false);
+  assert.equal(new Dedupe(journal).checkEffect("effect-123").reason, "duplicate_intent");
+});
+
+test("invalid cross-target clock and window cannot bypass effect history", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({
+    phase: "effect_confirmed",
+    effect_key: "effect-1",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+  });
+  const dedupe = new Dedupe(journal);
+  const base = {
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  };
+
+  for (const badWindow of [NaN, Infinity, -Infinity, undefined, "60000"]) {
+    const decision = dedupe.checkCrossTarget({ ...base, windowMs: badWindow });
+    assert.equal(decision.blocked, true, String(badWindow));
+    assert.equal(decision.reason, "invalid_dedupe_window_or_clock");
+  }
+  for (const badNow of [NaN, Infinity, -Infinity, null, "now"]) {
+    const decision = dedupe.checkCrossTarget({ ...base, now: badNow });
+    assert.equal(decision.blocked, true, String(badNow));
+    assert.equal(decision.reason, "invalid_dedupe_window_or_clock");
+  }
+  assert.equal(dedupe.checkCrossTarget({ ...base }).reason, "duplicate_content_cross_target");
+  assert.equal(dedupe.checkCrossTarget({ ...base, windowMs: 0 }).blocked, false);
+});
+
+test("invalid timestamp on prior cross-target effect is ambiguous, not absent", () => {
+  const row = JSON.stringify({
+    effect_key: "effect-1",
+    phase: "effect_ambiguous",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+    timestamp: "not-a-date",
+  });
+  const journal = Journal.fromJSONL(row + "\n");
+  const decision = new Dedupe(journal).checkCrossTarget({
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  });
+  assert.equal(decision.blocked, true);
+  assert.equal(decision.reason, "ambiguous_side_effect");
+  assert.equal(decision.record.effect_key, "effect-1");
+});
+
+test("cross-target dedupe traverses an immutable journal snapshot once", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({
+    effect_key: "effect-1",
+    phase: "effect_confirmed",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+  });
+  journal.append({
+    effect_key: "effect-2",
+    phase: "effect_confirmed",
+    cross_target_content_key: "content-other",
+    target_fingerprint: "site-a",
+  });
+  let reads = 0;
+  const once = {
+    get records() {
+      reads += 1;
+      return journal.records;
+    },
+  };
+  const decision = new Dedupe(once).checkCrossTarget({
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  });
+  assert.equal(decision.blocked, true);
+  assert.equal(reads, 1);
+});
+
+test("unknown or missing later effect phase cannot clear an earlier confirmed effect", () => {
+  for (const phase of ["unrecognized", undefined, null]) {
+    const journal = new Journal(at("2026-09-29T10:00:00Z"));
+    journal.append({ effect_key: "effect-7", phase: "effect_confirmed" });
+    journal.append({ effect_key: "effect-7", ...(phase === undefined ? {} : { phase }) });
+    const dedupe = new Dedupe(journal);
+    const blocked = dedupe.checkEffect("effect-7");
+    assert.equal(blocked.blocked, true, String(phase));
+    assert.equal(blocked.reason, "ambiguous_side_effect");
+    const hook = createPolicyHook({
+      dedupe,
+      policyEngine: () => ({ allowed: true, effectiveMode: "attended_prepare" }),
+    });
+    const decision = hook({ idempotency: { effect_key: "effect-7" } });
+    assert.equal(decision.allowed, false);
+    assert.equal(decision.reason, "ambiguous_side_effect");
+  }
+});
+
+test("unknown phase in restored legacy journal never authorizes replay", () => {
+  const journal = Journal.fromJSONL(
+    JSON.stringify({ effect_key: "legacy-write", phase: "future_effect_phase" }) + "\n"
+  );
+  const decision = new Dedupe(journal).checkEffect("legacy-write");
+  assert.equal(decision.blocked, true);
+  assert.equal(decision.reason, "ambiguous_side_effect");
+  assert.equal(new Dedupe(journal).checkEffect("unknown-key").blocked, false);
+});
+
+test("journal PAT redaction preserves ordinary path and pattern evidence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    effect_key: "e-pat",
+    phase: "effect_intent",
+    metadata: {
+      path: "/fixture/jobs/42",
+      pattern: "request-id",
+      patch: "patch-summary",
+      compatibility: "backwards-compatible",
+      pat: "synthetic-personal-access-token",
+      github_pat: "synthetic-github-token",
+      auth_token: "synthetic-auth-token",
+    },
+  });
+  for (const name of ["path", "pattern", "patch", "compatibility"]) {
+    assert.notEqual(record.metadata[name], "[REDACTED]", name);
+  }
+  assert.equal(record.metadata.pat, "[REDACTED]");
+  assert.equal(record.metadata.github_pat, "[REDACTED]");
+  assert.equal(record.metadata.auth_token, "[REDACTED]");
+  assert.equal(journal.toJSONL().includes("synthetic-personal-access-token"), false);
+  assert.equal(journal.toJSONL().includes("synthetic-github-token"), false);
+  assert.equal(journal.toJSONL().includes("synthetic-auth-token"), false);
+  assert.equal(new Dedupe(journal).checkEffect("e-pat").reason, "duplicate_intent");
+});

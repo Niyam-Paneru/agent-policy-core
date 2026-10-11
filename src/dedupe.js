@@ -50,7 +50,15 @@ export class Dedupe {
       };
     }
 
-    return { blocked: false };
+    // A matching key with an unknown/missing phase is not evidence that an
+    // earlier intent or completed effect can safely be replayed. This can occur
+    // with legacy ledger rows or a later unrecognized status record.
+    return {
+      blocked: true,
+      reason: "ambiguous_side_effect",
+      phase: latest.phase ?? null,
+      record: latest,
+    };
   }
 
   checkTask(taskId) {
@@ -72,18 +80,32 @@ export class Dedupe {
    * same content twice to the same target is caught by `checkEffect`, not here.
    */
   checkCrossTarget({ contentKey, targetFingerprint, windowMs, now = Date.now() }) {
-    if (!windowMs || windowMs <= 0) return { blocked: false };
-
+    // An explicitly non-positive, finite window disables cross-target checks.
+    // Bad clock/window values must not silently turn the dedupe search into
+    // "never matched" (all comparisons with NaN are false).
+    if (typeof windowMs !== "number" || !Number.isFinite(windowMs)) {
+      return { blocked: true, reason: "invalid_dedupe_window_or_clock" };
+    }
+    if (windowMs <= 0) return { blocked: false };
     const cutoff = now - windowMs;
-    for (let i = this.journal.records.length - 1; i >= 0; i -= 1) {
-      const record = this.journal.records[i];
+    if (typeof now !== "number" || !Number.isFinite(now) || !Number.isFinite(cutoff)) {
+      return { blocked: true, reason: "invalid_dedupe_window_or_clock" };
+    }
+    const records = this.journal.records;
+    for (let i = records.length - 1; i >= 0; i -= 1) {
+      const record = records[i];
       if (record.phase !== "effect_confirmed" && record.phase !== "effect_ambiguous") {
         continue;
       }
       if (record.cross_target_content_key !== contentKey) continue;
       if (record.target_fingerprint === targetFingerprint) continue;
       const time = Date.parse(record.timestamp);
-      if (Number.isFinite(time) && time >= cutoff) {
+      if (!Number.isFinite(time)) {
+        // A matching effect with an unreadable timestamp is unresolved
+        // evidence, not proof that the dedupe window has elapsed.
+        return { blocked: true, reason: "ambiguous_side_effect", record };
+      }
+      if (time >= cutoff) {
         return {
           blocked: true,
           reason: "duplicate_content_cross_target",

@@ -11,10 +11,24 @@
  */
 
 const SENSITIVE_KEY =
-  /(authorization|token|password|passwd|cookie|secret|otp|credential|api[_-]?key|pat|session)/i;
+  /(authorization|token|password|passwd|cookie|secret|otp|credential|api[_-]?key|session|(?:^|[_-])pat(?:$|[_-]))/i;
 
 const SENSITIVE_QUERY =
   /^(token|access_token|auth|authorization|password|passwd|secret|api[_-]?key|key|otp|code)$/i;
+
+// Journal values are JSONL records. Snapshot after redaction so neither a caller's
+// original object nor a returned record can change persisted effect evidence.
+function frozenSnapshot(value) {
+  const copy = JSON.parse(JSON.stringify(value));
+  function freezeNested(item) {
+    if (item !== null && typeof item === "object") {
+      for (const child of Object.values(item)) freezeNested(child);
+      Object.freeze(item);
+    }
+    return item;
+  }
+  return freezeNested(copy);
+}
 
 export const EFFECT_PHASES = Object.freeze([
   "effect_intent",
@@ -61,7 +75,8 @@ export class Journal {
   }
 
   get records() {
-    return this.#records;
+    // Return a defensive array copy; each record is already deeply frozen.
+    return this.#records.slice();
   }
 
   /** Serialise as JSON Lines. One record per line, append-only, no rewrite. */
@@ -74,15 +89,19 @@ export class Journal {
     for (const line of text.split("\n")) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      journal.#records.push(JSON.parse(trimmed));
+      journal.#records.push(frozenSnapshot(JSON.parse(trimmed)));
     }
     return journal;
   }
 
   append(entry) {
-    const record = Object.freeze({
+    const record = frozenSnapshot({
+      // Redact *all* entry fields before persistence, not only the payload.
+      // Metadata and top-level fields may contain credential-shaped keys too.
+      ...redactValue(entry),
+      // The clock, never the caller, owns event time. Timestamp spoofing can
+      // suppress cross-target duplicate checks by backdating prior effects.
       timestamp: this.#now().toISOString(),
-      ...entry,
       payload: entry.payload === undefined ? undefined : redactValue(entry.payload),
       url: entry.url === undefined ? undefined : redactUrl(entry.url),
     });
