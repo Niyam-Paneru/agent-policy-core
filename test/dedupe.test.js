@@ -397,3 +397,30 @@ test("unknown phase in restored legacy journal never authorizes replay", () => {
   assert.equal(decision.reason, "ambiguous_side_effect");
   assert.equal(new Dedupe(journal).checkEffect("unknown-key").blocked, false);
 });
+
+test("journal PAT redaction preserves ordinary path and pattern evidence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    effect_key: "e-pat",
+    phase: "effect_intent",
+    metadata: {
+      path: "/fixture/jobs/42",
+      pattern: "request-id",
+      patch: "patch-summary",
+      compatibility: "backwards-compatible",
+      pat: "synthetic-personal-access-token",
+      github_pat: "synthetic-github-token",
+      auth_token: "synthetic-auth-token",
+    },
+  });
+  for (const name of ["path", "pattern", "patch", "compatibility"]) {
+    assert.notEqual(record.metadata[name], "[REDACTED]", name);
+  }
+  assert.equal(record.metadata.pat, "[REDACTED]");
+  assert.equal(record.metadata.github_pat, "[REDACTED]");
+  assert.equal(record.metadata.auth_token, "[REDACTED]");
+  assert.equal(journal.toJSONL().includes("synthetic-personal-access-token"), false);
+  assert.equal(journal.toJSONL().includes("synthetic-github-token"), false);
+  assert.equal(journal.toJSONL().includes("synthetic-auth-token"), false);
+  assert.equal(new Dedupe(journal).checkEffect("e-pat").reason, "duplicate_intent");
+});
