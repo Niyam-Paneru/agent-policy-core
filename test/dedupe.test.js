@@ -287,3 +287,84 @@ test("journal redacts sensitive top-level and metadata fields before JSONL persi
   assert.equal(persisted.includes("synthetic-nested-key"), false);
   assert.equal(new Dedupe(journal).checkEffect("effect-123").reason, "duplicate_intent");
 });
+
+test("invalid cross-target clock and window cannot bypass effect history", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({
+    phase: "effect_confirmed",
+    effect_key: "effect-1",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+  });
+  const dedupe = new Dedupe(journal);
+  const base = {
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  };
+
+  for (const badWindow of [NaN, Infinity, -Infinity, undefined, "60000"]) {
+    const decision = dedupe.checkCrossTarget({ ...base, windowMs: badWindow });
+    assert.equal(decision.blocked, true, String(badWindow));
+    assert.equal(decision.reason, "invalid_dedupe_window_or_clock");
+  }
+  for (const badNow of [NaN, Infinity, -Infinity, null, "now"]) {
+    const decision = dedupe.checkCrossTarget({ ...base, now: badNow });
+    assert.equal(decision.blocked, true, String(badNow));
+    assert.equal(decision.reason, "invalid_dedupe_window_or_clock");
+  }
+  assert.equal(dedupe.checkCrossTarget({ ...base }).reason, "duplicate_content_cross_target");
+  assert.equal(dedupe.checkCrossTarget({ ...base, windowMs: 0 }).blocked, false);
+});
+
+test("invalid timestamp on prior cross-target effect is ambiguous, not absent", () => {
+  const row = JSON.stringify({
+    effect_key: "effect-1",
+    phase: "effect_ambiguous",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+    timestamp: "not-a-date",
+  });
+  const journal = Journal.fromJSONL(row + "\n");
+  const decision = new Dedupe(journal).checkCrossTarget({
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  });
+  assert.equal(decision.blocked, true);
+  assert.equal(decision.reason, "ambiguous_side_effect");
+  assert.equal(decision.record.effect_key, "effect-1");
+});
+
+test("cross-target dedupe traverses an immutable journal snapshot once", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({
+    effect_key: "effect-1",
+    phase: "effect_confirmed",
+    cross_target_content_key: "content-1",
+    target_fingerprint: "site-a",
+  });
+  journal.append({
+    effect_key: "effect-2",
+    phase: "effect_confirmed",
+    cross_target_content_key: "content-other",
+    target_fingerprint: "site-a",
+  });
+  let reads = 0;
+  const once = {
+    get records() {
+      reads += 1;
+      return journal.records;
+    },
+  };
+  const decision = new Dedupe(once).checkCrossTarget({
+    contentKey: "content-1",
+    targetFingerprint: "site-b",
+    windowMs: 60000,
+    now: Date.parse("2026-09-29T10:00:10Z"),
+  });
+  assert.equal(decision.blocked, true);
+  assert.equal(reads, 1);
+});
