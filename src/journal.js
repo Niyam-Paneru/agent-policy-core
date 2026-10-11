@@ -11,7 +11,7 @@
  */
 
 const SENSITIVE_KEY =
-  /(authorization|token|password|passwd|cookie|secret|otp|credential|api[_-]?key|pat|session)/i;
+  /(authorization|token|password|passwd|cookie|secret|otp|credential|api[_-]?key|session|(?:^|[_-])pat(?:$|[_-]))/i;
 
 const SENSITIVE_QUERY =
   /^(token|access_token|auth|authorization|password|passwd|secret|api[_-]?key|key|otp|code)$/i;
