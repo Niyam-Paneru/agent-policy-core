@@ -52,6 +52,23 @@ export function redactUrl(rawUrl) {
   return url.toString();
 }
 
+// Clone before freezing so a caller cannot change an audit record by retaining
+// a reference to metadata passed into append(). Evidence is JSON-like data.
+function frozenRecordSnapshot(value, seen = new WeakSet()) {
+  if (value === null || typeof value !== "object") return value;
+  // Dates previously serialized as ISO strings, so preserve that JSON shape.
+  if (value instanceof Date) return value.toJSON();
+  if (seen.has(value)) throw new TypeError("journal records must be acyclic");
+  seen.add(value);
+  const copy = Array.isArray(value)
+    ? value.map((item) => frozenRecordSnapshot(item, seen))
+    : Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, frozenRecordSnapshot(item, seen)]),
+    );
+  seen.delete(value);
+  return Object.freeze(copy);
+}
+
 export class Journal {
   #records = [];
   #now;
@@ -61,7 +78,8 @@ export class Journal {
   }
 
   get records() {
-    return this.#records;
+    // The internal append-only array must never escape, even for read-only callers.
+    return Object.freeze([...this.#records]);
   }
 
   /** Serialise as JSON Lines. One record per line, append-only, no rewrite. */
@@ -74,15 +92,16 @@ export class Journal {
     for (const line of text.split("\n")) {
       const trimmed = line.trim();
       if (!trimmed) continue;
-      journal.#records.push(JSON.parse(trimmed));
+      journal.#records.push(frozenRecordSnapshot(JSON.parse(trimmed)));
     }
     return journal;
   }
 
   append(entry) {
-    const record = Object.freeze({
-      timestamp: this.#now().toISOString(),
+    const record = frozenRecordSnapshot({
       ...entry,
+      // Host time is authoritative; caller metadata cannot backdate an effect.
+      timestamp: this.#now().toISOString(),
       payload: entry.payload === undefined ? undefined : redactValue(entry.payload),
       url: entry.url === undefined ? undefined : redactUrl(entry.url),
     });

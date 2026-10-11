@@ -75,8 +75,11 @@ export class Dedupe {
     if (!windowMs || windowMs <= 0) return { blocked: false };
 
     const cutoff = now - windowMs;
-    for (let i = this.journal.records.length - 1; i >= 0; i -= 1) {
-      const record = this.journal.records[i];
+    // Capture one snapshot; the journal deliberately no longer exposes its
+    // mutable backing array. Re-fetching per iteration would copy it O(n²).
+    const records = this.journal.records;
+    for (let i = records.length - 1; i >= 0; i -= 1) {
+      const record = records[i];
       if (record.phase !== "effect_confirmed" && record.phase !== "effect_ambiguous") {
         continue;
       }

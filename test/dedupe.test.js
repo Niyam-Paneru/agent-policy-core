@@ -173,3 +173,82 @@ test("the policy hook checks idempotency only after policy allows the task", () 
   assert.equal(blocked.allowed, false);
   assert.equal(blocked.reason, "duplicate_content_cross_target");
 });
+
+test("journal assigns host time even when a caller supplies a conflicting timestamp", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const record = journal.append({
+    effect_key: "e1",
+    phase: "effect_intent",
+    timestamp: "1999-01-01T00:00:00.000Z",
+  });
+  assert.equal(record.timestamp, "2026-09-29T10:00:00.000Z");
+});
+
+test("a reader cannot add, delete, or modify effect evidence", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  const metadata = { audit: { reason: "requested" } };
+  const entry = journal.append({
+    effect_key: "e1",
+    phase: "effect_intent",
+    metadata,
+    payload: { message: "original" },
+  });
+  const before = journal.toJSONL();
+
+  assert.throws(() => journal.records.push({ phase: "effect_confirmed" }), TypeError);
+  assert.throws(() => journal.records.pop(), TypeError);
+  assert.throws(() => { entry.payload.message = "altered"; }, TypeError);
+  assert.throws(() => { entry.metadata.audit.reason = "altered"; }, TypeError);
+  metadata.audit.reason = "changed by caller";
+
+  assert.equal(journal.records[0].metadata.audit.reason, "requested");
+  assert.equal(journal.toJSONL(), before);
+  assert.equal(new Dedupe(journal).checkEffect("e1").reason, "duplicate_intent");
+});
+
+test("imported journal entries retain read-only evidence semantics", () => {
+  const original = new Journal(at("2026-09-29T10:00:00Z"));
+  original.append({
+    effect_key: "e1",
+    phase: "effect_ambiguous",
+    payload: { message: "uncertain" },
+  });
+  const restored = Journal.fromJSONL(original.toJSONL());
+
+  assert.throws(() => { restored.records[0].phase = "effect_confirmed"; }, TypeError);
+  assert.throws(() => { restored.records[0].payload.message = "altered"; }, TypeError);
+  assert.equal(new Dedupe(restored).checkEffect("e1").reason, "ambiguous_side_effect");
+});
+
+test("cross-target lookup still inspects journal history after snapshot isolation", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({
+    effect_key: "e1",
+    phase: "effect_confirmed",
+    cross_target_content_key: "original",
+    target_fingerprint: "site-a",
+  });
+  const result = new Dedupe(journal).checkCrossTarget({
+    contentKey: "original",
+    targetFingerprint: "site-b",
+    windowMs: 10_000,
+    now: Date.parse("2026-09-29T10:00:01Z"),
+  });
+  assert.equal(result.blocked, true);
+});
+
+test("deep evidence is preserved and cyclic metadata fails before append", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  let metadata = { important: "preserved" };
+  for (let i = 0; i < 12; i += 1) metadata = { next: metadata };
+  journal.append({ effect_key: "deep", phase: "effect_intent", metadata });
+  assert.match(journal.toJSONL(), /preserved/);
+
+  const cyclic = {};
+  cyclic.self = cyclic;
+  assert.throws(
+    () => journal.append({ effect_key: "cyclic", phase: "effect_intent", metadata: cyclic }),
+    /acyclic/,
+  );
+  assert.equal(journal.records.length, 1, "a refused entry never partially appends");
+});
