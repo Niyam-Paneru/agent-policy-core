@@ -9,6 +9,9 @@ A capability approved for one origin appears on another. Response: deny; origin 
 ## Ambiguous side effect
 The system recorded intent but cannot prove whether the effect landed. Response: stop and verify instead of replaying.
 
+## Missing or invalid cross-target timing evidence
+A broken clock (NaN), malformed configured window or legacy record with an unparseable timestamp can otherwise make every time comparison false, silently allowing a duplicate write. Response: reject invalid clock/window settings and treat a matching record with unreadable time as an ambiguous effect requiring review. Capture the journal snapshot once per check so immutable defensive reads do not create quadratic scanning cost.
+
 ## Secret-bearing evidence
 A useful log field may contain a credential. Response: redact before persistence, not after.
 
