@@ -236,3 +236,19 @@ test("cross-target lookup still inspects journal history after snapshot isolatio
   });
   assert.equal(result.blocked, true);
 });
+
+test("deep evidence is preserved and cyclic metadata fails before append", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  let metadata = { important: "preserved" };
+  for (let i = 0; i < 12; i += 1) metadata = { next: metadata };
+  journal.append({ effect_key: "deep", phase: "effect_intent", metadata });
+  assert.match(journal.toJSONL(), /preserved/);
+
+  const cyclic = {};
+  cyclic.self = cyclic;
+  assert.throws(
+    () => journal.append({ effect_key: "cyclic", phase: "effect_intent", metadata: cyclic }),
+    /acyclic/,
+  );
+  assert.equal(journal.records.length, 1, "a refused entry never partially appends");
+});
