@@ -230,3 +230,39 @@ test("restored JSONL records are immutable after rehydration", () => {
   assert.throws(() => { record.payload.nested.count = 99; }, TypeError);
   assert.equal(new Dedupe(restored).checkEffect("e1").reason, "duplicate_intent");
 });
+
+test("combined policy hook refuses same-effect replays for every effect phase", () => {
+  const cases = [
+    ["effect_intent", "duplicate_intent"],
+    ["effect_confirmed", "duplicate_effect"],
+    ["effect_ambiguous", "ambiguous_side_effect"],
+  ];
+
+  for (const [phase, reason] of cases) {
+    const journal = new Journal(at("2026-09-29T10:00:00Z"));
+    journal.append({ effect_key: "effect-1", phase });
+    const hook = createPolicyHook({
+      dedupe: new Dedupe(journal),
+      policyEngine: () => ({ allowed: true, effectiveMode: "attended_prepare" }),
+    });
+
+    const replay = hook({ idempotency: { effect_key: "effect-1" } });
+    assert.equal(replay.allowed, false, phase);
+    assert.equal(replay.reason, reason);
+    assert.equal(journal.records.length, 1, "policy hook must not append side effects");
+
+    const fresh = hook({ idempotency: { effect_key: "effect-2" } });
+    assert.equal(fresh.allowed, true);
+  }
+});
+
+test("combined hook keeps authorization denial ahead of replay checks", () => {
+  const journal = new Journal(at("2026-09-29T10:00:00Z"));
+  journal.append({ effect_key: "effect-1", phase: "effect_confirmed" });
+  const hook = createPolicyHook({
+    dedupe: new Dedupe(journal),
+    policyEngine: () => ({ allowed: false, reason: "unsupported_action" }),
+  });
+  const refused = hook({ idempotency: { effect_key: "effect-1" } });
+  assert.deepEqual(refused, { allowed: false, reason: "unsupported_action" });
+});
