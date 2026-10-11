@@ -262,6 +262,16 @@ export function createPolicyHook({
     const decision = policyEngine(task);
     if (!decision.allowed) return decision;
 
+    // An allowed target/action is not permission to replay a known effect.
+    // Check the exact operation before broader cross-target content reuse.
+    const effectKey = task?.idempotency?.effect_key;
+    if (dedupe && effectKey) {
+      const duplicate = dedupe.checkEffect(effectKey);
+      if (duplicate.blocked) {
+        return { ...decision, allowed: false, reason: duplicate.reason };
+      }
+    }
+
     const contentKey = task?.idempotency?.cross_target_content_key;
     if (dedupe && contentKey && task?.target_fingerprint) {
       const duplicate = dedupe.checkCrossTarget({
