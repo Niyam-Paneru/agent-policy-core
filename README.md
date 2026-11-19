@@ -1,124 +1,34 @@
 # Agent Policy Core
 
-An AI agent asks to use a tool. Before it touches anything, this JavaScript library checks **what action is permitted, where, and whether the same effect may already have happened**. A timed-out write is not a free retry.
+Giving an agent a tool is easy. Deciding when it should *not* use the tool is where things get interesting.
 
-For example: authorization says “yes,” but the effect ledger says “outcome unknown.” The answer is **stop and verify**, not “click harder.” The robot can be optimistic; the permission gate can't.
+This JavaScript library is a policy check in front of tool-calling agents. It answers two separate questions:
 
-**Try it / check the behavior:**
+**1. Are you allowed to do this?** Exact platform/action, URL origin, granted mode, review freshness, and write limits all matter. A URL that merely *looks* like the right domain doesn't get a free pass.
 
-```bash
+**2. Has this action already happened — or might it have?** A confirmed effect blocks duplicates. An ambiguous effect blocks retries until someone checks. A successful permission check does **not** override an uncertain effect ledger.
+
+So yes, the agent can have permission to click a button and still be told to leave it alone. That's the entire joke, and also the safety feature.
+
+## Try an agent getting told "no"
+
+```sh
 npm run demo
 npm test
 ```
 
-This is a policy library, not a hosted agent, browser driver, or security sandbox. [Verification](docs/verification.md).
+Node.js 20+, no runtime dependencies. The demo walks the decisions; tests exercise the policy and duplicate/effect rules.
 
-## Authorization narrows; never widens
+Where to look:
 
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    nodeSpacing: 28
-    rankSpacing: 42
----
-flowchart LR
-    accTitle: Authorization narrows; never widens
-    accDescr: Decision flow for authorization narrows; never widens.
-    A["Request"] --> B{"Admission valid?"}
-    B -- No --> D["Deny<br/>Specific reason"]
-    B -- Yes --> F["Check mode + freshness"]
-    classDef input stroke-width:1.5px;
-    classDef pass stroke-width:2.5px;
-    classDef stop stroke-width:2px,stroke-dasharray:5 3;
-    class A,B,F input;
-    class D stop;
-```
+- [registry.js](src/registry.js) — reviewed platforms, actions, modes, and limits
+- [policy.js](src/policy.js) — admission and scope narrowing
+- [dedupe.js](src/dedupe.js) — duplicate content and unresolved-effect blocking
+- [journal.js](src/journal.js) — recorded effect evidence with redaction
+- [tests](test/) — behavior, including refusal paths
 
-`src/policy.js` checks admission in this exact order:
+The exact admission-order and error contracts live in [invariants](docs/invariants.md) and [failure modes](docs/failure-modes.md).
 
-1. **Reviewed registry:** supported platform, then allowed action; failures return `unsupported_platform` or `unsupported_action`.
-2. **Exact target:** parse the URL, require the claimed origin to match, reject embedded credentials, and require HTTPS except the explicit HTTP loopback fixture. Enforce origin ownership and the platform's reviewed origin/path rules; failures return `redirect_outside_allowlist`.
-3. **Required provenance:** news-aggregator comments require a nonempty provenance object whose values are all `human_authored_unedited`; failure returns `provenance_blocked`.
+## What isn't hiding in here
 
-## Mode and freshness can narrow permission
-
-The mode check runs before freshness, so an ungranted mode cannot be mistaken for stale evidence. Safe fallback modes are `attended_prepare` and `manual_only`.
-
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    nodeSpacing: 28
-    rankSpacing: 42
----
-flowchart TB
-    accTitle: Mode and freshness can narrow permission
-    accDescr: Decision flow for mode and freshness can narrow permission.
-    M{"Mode granted?"} -- No --> N["Deny<br/>mode_not_allowed"]
-    M -- Yes --> F{"Fresh?"}
-    F -- Yes --> G{"Scope valid?"}
-    F -- No --> S{"Safe fallback?"}
-    S -- Yes --> G
-    S -- No --> I["Deny<br/>policy_evidence_stale"]
-    G -- No --> N
-    G -- Yes --> H["Allow<br/>Clamp caps"]
-    classDef input stroke-width:1.5px;
-    classDef pass stroke-width:2.5px;
-    classDef stop stroke-width:2px,stroke-dasharray:5 3;
-    class M,F,S,G input;
-    class H pass;
-    class I,N stop;
-```
-
-Both denials return a safer `effectiveMode`. After freshness, the final scope check still refuses `generic_form` browser mode without a reviewed per-origin browser grant (`mode_not_allowed`). Requests that pass have their requested write caps clamped to registry limits. Missing, invalid, or future-dated review evidence is stale; a generic form without a reviewed domain entry is also stale.
-
-## Effect state is a separate decision
-
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    nodeSpacing: 28
-    rankSpacing: 42
----
-flowchart TB
-    accTitle: Effect state is a separate decision
-    accDescr: Decision flow for effect state is a separate decision.
-    A["Authorization allowed"] --> C{"checkEffect latest phase?"}
-    C -- None --> D["Eligible to proceed"]
-    C -- effect_intent --> E["Block<br/>duplicate_intent"]
-    C -- effect_confirmed --> F["Block<br/>duplicate_effect"]
-    C -- effect_ambiguous --> G["Stop + verify<br/>ambiguous_side_effect"]
-    classDef input stroke-width:1.5px;
-    classDef pass stroke-width:2.5px;
-    classDef stop stroke-width:2px,stroke-dasharray:5 3;
-    class A,C input;
-    class D pass;
-    class E,F,G stop;
-```
-
-`src/dedupe.js` treats intent, confirmed effects, and ambiguous effects as hard stops. `createPolicyHook()` can also block confirmed or ambiguous reuse of the same content across different targets inside the configured dedupe window.
-
-## Code to inspect first
-
-| File | Responsibility |
-|---|---|
-| [`src/registry.js`](src/registry.js) | reviewed grants, modes, limits, and evidence |
-| [`src/policy.js`](src/policy.js) | pure authorization decision and narrowing |
-| [`src/dedupe.js`](src/dedupe.js) | duplicate, cross-target, and ambiguous-effect blocking |
-| [`src/journal.js`](src/journal.js) | append-only effect evidence with redaction |
-| [`test/policy.test.js`](test/policy.test.js) | authorization boundary tests |
-| [`test/dedupe.test.js`](test/dedupe.test.js) | effect-state/idempotency tests |
-| [`examples/walkthrough.js`](examples/walkthrough.js) | decision walkthrough |
-
-## Evidence and boundaries
-
-CircleCI is configured to check source syntax, behavior tests, the walkthrough, and required public docs. Exact local commands and expected checks: [docs/verification.md](docs/verification.md).
-
-This is a policy library, not a sandbox or browser driver. It has no network client, browser integration, credential store, or provider SDK. The caller must invoke the gate before external tools and persist/use the journal appropriately.
-
-See [SECURITY.md](SECURITY.md), [PROVENANCE.md](PROVENANCE.md), [docs/invariants.md](docs/invariants.md), and [docs/failure-modes.md](docs/failure-modes.md) for the assumptions and failure contract.
+No browser driver, provider client, credentials, or magic sandbox. The calling application has to place this gate in front of its actual tools and persist the journal correctly. This repo doesn't prove a deployment is secure just because the library has opinions. [Security](SECURITY.md) · [verification](docs/verification.md) · [provenance](PROVENANCE.md).
