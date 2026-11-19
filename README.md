@@ -10,14 +10,58 @@ This JavaScript library is a policy check in front of tool-calling agents. It an
 
 So yes, the agent can have permission to click a button and still be told to leave it alone. That's the entire joke, and also the safety feature.
 
-## Try an agent getting told "no"
+## Two gates. Two different reasons to stop.
 
-```sh
-npm run demo
-npm test
+First, the requested action has to be inside the approved scope.
+
+```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 28
+    rankSpacing: 42
+---
+flowchart LR
+    accTitle: Authorization narrows; never widens
+    accDescr: Decision flow for authorization narrows; never widens.
+    A["Request"] --> B{"Admission valid?"}
+    B -- No --> D["Deny<br/>Specific reason"]
+    B -- Yes --> F["Check mode + freshness"]
+    classDef input stroke-width:1.5px;
+    classDef pass stroke-width:2.5px;
+    classDef stop stroke-width:2px,stroke-dasharray:5 3;
+    class A,B,F input;
+    class D stop;
 ```
 
-Node.js 20+, no runtime dependencies. The demo walks the decisions; tests exercise the policy and duplicate/effect rules.
+Even with permission, an earlier uncertain effect can still stop a retry.
+
+```mermaid
+---
+config:
+  flowchart:
+    curve: linear
+    nodeSpacing: 28
+    rankSpacing: 42
+---
+flowchart TB
+    accTitle: Effect state is a separate decision
+    accDescr: Decision flow for effect state is a separate decision.
+    A["Authorization allowed"] --> C{"checkEffect latest phase?"}
+    C -- None --> D["Eligible to proceed"]
+    C -- effect_intent --> E["Block<br/>duplicate_intent"]
+    C -- effect_confirmed --> F["Block<br/>duplicate_effect"]
+    C -- effect_ambiguous --> G["Stop + verify<br/>ambiguous_side_effect"]
+    classDef input stroke-width:1.5px;
+    classDef pass stroke-width:2.5px;
+    classDef stop stroke-width:2px,stroke-dasharray:5 3;
+    class A,C input;
+    class D pass;
+    class E,F,G stop;
+```
+
+Node.js 20+; [the walkthrough and tests](docs/verification.md) exercise these choices, including the refusal paths.
 
 Where to look:
 
