@@ -1,10 +1,17 @@
 # Agent Policy Core
 
-A deny-by-default policy gate for tool-calling agents. It keeps **authorization** separate from **effect-state/idempotency**, so a request can be permitted and still be blocked from replay.
+An AI agent asks to use a tool. Before it touches anything, this JavaScript library checks **what action is permitted, where, and whether the same effect may already have happened**. A timed-out write is not a free retry.
 
-**Sometimes the correct tool call is no tool call.**
+For example: authorization says “yes,” but the effect ledger says “outcome unknown.” The answer is **stop and verify**, not “click harder.” The robot can be optimistic; the permission gate can't.
 
-This public sample extracts policy and effect-state patterns from my private browser-control work. I can integrate and adapt these gates within broader agent applications and automation workflows; the code here makes the decisions inspectable without exposing the surrounding private systems.
+**Try it / check the behavior:**
+
+```bash
+npm run demo
+npm test
+```
+
+This is a policy library, not a hosted agent, browser driver, or security sandbox. [Verification](docs/verification.md).
 
 ## Authorization narrows; never widens
 
