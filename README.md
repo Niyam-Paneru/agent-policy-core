@@ -10,32 +10,9 @@ This JavaScript library is a policy check in front of tool-calling agents. It an
 
 So yes, the agent can have permission to click a button and still be told to leave it alone. That's the entire joke, and also the safety feature.
 
-## Two gates. Two different reasons to stop.
+## Permission isn't the same as permission to retry
 
-First, the requested action has to be inside the approved scope.
-
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    nodeSpacing: 28
-    rankSpacing: 42
----
-flowchart LR
-    accTitle: Authorization narrows; never widens
-    accDescr: Decision flow for authorization narrows; never widens.
-    A["Request"] --> B{"Admission valid?"}
-    B -- No --> D["Deny<br/>Specific reason"]
-    B -- Yes --> F["Check mode + freshness"]
-    classDef input stroke-width:1.5px;
-    classDef pass stroke-width:2.5px;
-    classDef stop stroke-width:2px,stroke-dasharray:5 3;
-    class A,B,F input;
-    class D stop;
-```
-
-Even with permission, an earlier uncertain effect can still stop a retry.
+First the requested origin, action, and mode have to be allowed. **Then** the effect ledger makes a separate decision. The distinction matters most when a write may already have happened.
 
 ```mermaid
 ---
