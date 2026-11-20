@@ -1,12 +1,12 @@
 # Agent Policy Core
 
-One of the more expensive words in automation is **“again.”**
+Somewhere in automation there is an agent that has permission to click Submit and interprets that as a personal invitation to click it forever.
 
-An agent may have permission to click Submit. That doesn't mean it should click again when the response disappears. The first click might have worked; the second one might explain why a customer has two identical orders.
+I would prefer not to meet that agent in production.
 
-This JavaScript library is a policy check for tool-calling agents. It keeps two questions separate: **are you allowed to try?** and **is trying again safe?**
+This JavaScript library checks the terms of the permission **and** whether the requested effect might already exist. “You may use the tool” is not the same as “you may reenact the same write until the server applauds.”
 
-## Permission is not permission to retry
+## Permission has an expiry date. So does my patience.
 
 | Evidence | Decision | Reason |
 | --- | --- | --- |
@@ -26,4 +26,4 @@ The code checks the exact URL origin, not an address that merely *looks* friendl
 
 No Chrome driver, provider client, credentials, deployment, or reliable external-effect observer comes with this library. The caller must wire the gate into its real tool boundary and persist the journal correctly.
 
-The library can tell the caller when a retry is unsafe. A caller that ignores it can still make a mess; no npm package can fix that design decision. [Security](SECURITY.md) · [provenance](PROVENANCE.md).
+The library can refuse a risky retry. It cannot stop you from wiring it in *after* the real tool call, where it would be a beautifully tested decoration. [Security](SECURITY.md) · [provenance](PROVENANCE.md).
