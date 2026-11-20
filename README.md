@@ -1,10 +1,10 @@
 # Agent Policy Core
 
-Giving an AI agent a tool is easy. Convincing it that “you have permission” does **not** mean “keep clicking until something happens” is an entirely different project.
+One of the more expensive words in automation is **“again.”**
 
-This JavaScript module puts a **policy check** in front of tool-calling agents. It separates two questions that sound similar until you accidentally submit the same form twice:
+An agent may have permission to click Submit. That doesn't mean it should click again when the response disappears. The first click might have worked; the second one might explain why a customer has two identical orders.
 
-**Are you allowed to try?** And **is trying again safe?**
+This JavaScript library is a policy check for tool-calling agents. It keeps two questions separate: **are you allowed to try?** and **is trying again safe?**
 
 ## Permission is not permission to retry
 
@@ -18,7 +18,7 @@ This JavaScript module puts a **policy check** in front of tool-calling agents. 
 
 The code checks the exact URL origin, not an address that merely *looks* friendly. An accepted grant can't override a conflicting effect journal. That separation matters when the external result is unknown.
 
-## Code worth opening
+## Where the rules are
 
 [registry.js](src/registry.js) defines reviewed platforms, actions, modes, and limits; [policy.js](src/policy.js) checks admission and scope; [dedupe.js](src/dedupe.js) handles duplicate/unresolved effects; [journal.js](src/journal.js) keeps redacted records. See [tests](test/), [invariants](docs/invariants.md), [failure modes](docs/failure-modes.md), and [verification notes](docs/verification.md). Node.js 20+.
 
@@ -26,4 +26,4 @@ The code checks the exact URL origin, not an address that merely *looks* friendl
 
 No Chrome driver, provider client, credentials, deployment, or reliable external-effect observer comes with this library. The caller must wire the gate into its real tool boundary and persist the journal correctly.
 
-The module can tell you when a retry is unsafe. It cannot stop a determined developer from placing the call on the wrong side of the gate. [Security](SECURITY.md) · [provenance](PROVENANCE.md).
+The library can tell the caller when a retry is unsafe. A caller that ignores it can still make a mess; no npm package can fix that design decision. [Security](SECURITY.md) · [provenance](PROVENANCE.md).
