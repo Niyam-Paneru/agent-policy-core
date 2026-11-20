@@ -1,10 +1,8 @@
 # Agent Policy Core
 
-Somewhere in automation there is an agent that has permission to click Submit and interprets that as a personal invitation to click it forever.
+Giving an agent a key to one room doesn't give it permission to move into the entire building. Apparently, that needs to be written down in code, too.
 
-I would prefer not to meet that agent in production.
-
-This JavaScript library checks the terms of the permission **and** whether the requested effect might already exist. “You may use the tool” is not the same as “you may reenact the same write until the server applauds.”
+This JavaScript library checks the grant for the requested action and separately checks whether the effect may already exist. A valid permission doesn't make an unresolved write safe to repeat.
 
 ## Permission has an expiry date. So does my patience.
 
