@@ -1,55 +1,29 @@
 # Agent Policy Core
 
-Giving an agent a tool is easy. Deciding when it should *not* use the tool is where things get interesting.
+Giving an AI agent a tool is easy. Convincing it that “you have permission” does **not** mean “keep clicking until something happens” is an entirely different project.
 
-This JavaScript library is a policy check in front of tool-calling agents. It answers two separate questions:
+This JavaScript module puts a **policy check** in front of tool-calling agents. It separates two questions that sound similar until you accidentally submit the same form twice:
 
-**1. Are you allowed to do this?** Exact platform/action, URL origin, granted mode, review freshness, and write limits all matter. A URL that merely *looks* like the right domain doesn't get a free pass.
+**Are you allowed to try?** And **is trying again safe?**
 
-**2. Has this action already happened — or might it have?** A confirmed effect blocks duplicates. An ambiguous effect blocks retries until someone checks. A successful permission check does **not** override an uncertain effect ledger.
+## Yes, you may. No, not again.
 
-So yes, the agent can have permission to click a button and still be told to leave it alone. That's the entire joke, and also the safety feature.
+| Evidence | Decision | Reason |
+| --- | --- | --- |
+| Origin, action, mode, review age, or write cap doesn't match the grant | Deny | Permission has actual boundaries |
+| Grant is valid; no earlier effect recorded | Eligible to proceed | The first attempt can be authorized |
+| Earlier effect is an unresolved intent | Block duplicate intent | We may already have acted |
+| Earlier effect was confirmed | Block duplicate effect | Doing it twice is not an improvement |
+| Earlier effect is ambiguous | Stop; verify externally | Unknown isn't the same as failed |
 
-## Permission isn't the same as permission to retry
+The code checks the exact URL origin, not an address that merely *looks* friendly. An accepted grant can't override a conflicting effect journal. The ledger isn't being dramatic; it's been burned before.
 
-First the requested origin, action, and mode have to be allowed. **Then** the effect ledger makes a separate decision. The distinction matters most when a write may already have happened.
+## Code worth opening
 
-```mermaid
----
-config:
-  flowchart:
-    curve: linear
-    nodeSpacing: 28
-    rankSpacing: 42
----
-flowchart TB
-    accTitle: Effect state is a separate decision
-    accDescr: Decision flow for effect state is a separate decision.
-    A["Authorization allowed"] --> C{"checkEffect latest phase?"}
-    C -- None --> D["Eligible to proceed"]
-    C -- effect_intent --> E["Block<br/>duplicate_intent"]
-    C -- effect_confirmed --> F["Block<br/>duplicate_effect"]
-    C -- effect_ambiguous --> G["Stop + verify<br/>ambiguous_side_effect"]
-    classDef input stroke-width:1.5px;
-    classDef pass stroke-width:2.5px;
-    classDef stop stroke-width:2px,stroke-dasharray:5 3;
-    class A,C input;
-    class D pass;
-    class E,F,G stop;
-```
+[registry.js](src/registry.js) defines reviewed platforms, actions, modes, and limits; [policy.js](src/policy.js) checks admission and scope; [dedupe.js](src/dedupe.js) handles duplicate/unresolved effects; [journal.js](src/journal.js) keeps redacted records. See [tests](test/), [invariants](docs/invariants.md), [failure modes](docs/failure-modes.md), and [verification notes](docs/verification.md). Node.js 20+.
 
-Node.js 20+; [the walkthrough and tests](docs/verification.md) exercise these choices, including the refusal paths.
+## No magic browser included
 
-Where to look:
+No Chrome driver, provider client, credentials, deployment, or reliable external-effect observer comes with this library. The caller must wire the gate into its real tool boundary and persist the journal correctly.
 
-- [registry.js](src/registry.js) — reviewed platforms, actions, modes, and limits
-- [policy.js](src/policy.js) — admission and scope narrowing
-- [dedupe.js](src/dedupe.js) — duplicate content and unresolved-effect blocking
-- [journal.js](src/journal.js) — recorded effect evidence with redaction
-- [tests](test/) — behavior, including refusal paths
-
-The exact admission-order and error contracts live in [invariants](docs/invariants.md) and [failure modes](docs/failure-modes.md).
-
-## What isn't hiding in here
-
-No browser driver, provider client, credentials, or magic sandbox. The calling application has to place this gate in front of its actual tools and persist the journal correctly. This repo doesn't prove a deployment is secure just because the library has opinions. [Security](SECURITY.md) · [verification](docs/verification.md) · [provenance](PROVENANCE.md).
+The module can tell you when a retry is unsafe. It cannot stop a determined developer from placing the call on the wrong side of the gate. [Security](SECURITY.md) · [provenance](PROVENANCE.md).
